@@ -294,9 +294,9 @@ listDocuments({ queries: [Query.equal('metadata.category', c), Query.limit(1)] }
 - **Validation:** Lighthouse mobile ≥ 85; feed on real phone
 
 **Phase 4 — Data, tune, ship (Thu Oct 29 – Sat Oct 31)** — *Goal: submit early, not at the wire.*
-- [ ] Seed 300–500 texts (anonymized, backdated, count distribution); scale to full corpus
+- [ ] Seed 300–500 texts (anonymized, backdated, count distribution); scale to full corpus — **the lap commits the corpus JSONL + seed script; the actual insert into VectorsDB is executed by the operator** (needs a local API key, never given to laps)
 - [ ] Threshold tuning vs held-out paraphrase pairs; finalize demo script beats
-- [ ] Vercel deploy + platform/redirect config; phone testing; freeze features Fri
+- [ ] Vercel deploy — **the lap delivers `vercel.json` (SPA rewrite) + a deploy runbook; the actual Vercel import, domain registration, and Appwrite platform/redirect setup are the operator's task** (needs the operator's Vercel/Appwrite accounts); phone testing; freeze features Fri
 - [ ] Record demo video; README (architecture, why VectorsDB, limitations, attribution)
 - [ ] Submit via dashboard by **Oct 31 evening WAT** (deadline 7:59 AM Sun WAT — do not use the margin)
 - **Validation:** all §11 boxes checked; submission receipt in dashboard
