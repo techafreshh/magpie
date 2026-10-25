@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { embed, getEmbedLog, onEmbedLog } from '../lib/embedder';
 import type { EmbedProgress } from '../lib/embedder';
+import { GlassButton } from '../components/glassyui/glass-button';
+import { GlassPanel } from '../components/glassyui/glass-panel';
+import { GlassSkeleton } from '../components/glassyui/glass-skeleton';
 
 function formatLine(m: EmbedProgress): string {
   const stamp = new Date(m.ts).toISOString();
@@ -60,17 +63,23 @@ export default function Check() {
         className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 font-mono text-sm text-slate-200"
       />
 
-      <button
+      <GlassButton
         type="button"
+        lens={false}
         data-testid="embed-submit"
         disabled={busy}
         onClick={handleEmbed}
-        className="w-fit rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500 disabled:opacity-50"
       >
         Embed
-      </button>
+      </GlassButton>
 
-      {busy && <p className="font-mono text-sm text-slate-300">embedding…</p>}
+      {busy && (
+        <div role="status" aria-busy="true">
+          <GlassSkeleton className="h-4 w-1/3" variant="block" />
+          <GlassSkeleton className="mt-3 w-full" variant="text" lines={2} />
+          <p className="mt-4 font-mono text-sm text-slate-300">embedding…</p>
+        </div>
+      )}
 
       {!busy && error && (
         <p role="alert" data-testid="embed-error" className="font-mono text-sm text-amber-400">
@@ -79,7 +88,7 @@ export default function Check() {
       )}
 
       {!busy && vector.length > 0 && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+        <GlassPanel>
           <p data-testid="embed-result" className="font-mono text-emerald-300">
             dims: {vector.length}
           </p>
@@ -88,7 +97,7 @@ export default function Check() {
               {ms.toFixed(0)} ms
             </p>
           )}
-        </div>
+        </GlassPanel>
       )}
 
       <div>

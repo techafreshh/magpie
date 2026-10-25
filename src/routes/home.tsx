@@ -5,13 +5,14 @@ import type { EmbedProgress } from '../lib/embedder';
 import { verdict as runVerdict } from '../lib/search';
 import type { Verdict } from '../lib/search';
 import { VerdictCard } from '../components/verdict-card';
+import { GlassButton } from '../components/glassyui/glass-button';
+import { GlassPanel } from '../components/glassyui/glass-panel';
+import { GlassSkeleton } from '../components/glassyui/glass-skeleton';
 
 /** Hard CAP on the paste box (issue: "Textarea capped at 1,000 chars"). */
 const MAX_CHARS = 1000;
 
 type Phase = 'idle' | 'embedding' | 'searching' | 'done';
-
-const GLASS_PANEL = 'rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg backdrop-blur';
 
 export default function Home() {
   const [text, setText] = useState('');
@@ -75,7 +76,8 @@ export default function Home() {
         </p>
       </header>
 
-      <section aria-label="Check a message" className={GLASS_PANEL}>
+      {/* GlassyUI panel (issue #17): role="region" keeps the old <section aria-label> semantics. */}
+      <GlassPanel role="region" aria-label="Check a message">
         <div className="flex items-baseline justify-between gap-4">
           <label htmlFor="check-input" className="block text-sm font-medium text-slate-300">
             Message to check
@@ -99,30 +101,29 @@ export default function Home() {
           ~256 tokens. Your text never leaves this device — only an anonymous vector is sent for
           search.
         </p>
-        <button
+        <GlassButton
           type="button"
+          lens={false}
           data-testid="check-button"
           disabled={busy || !text.trim()}
           onClick={handleCheck}
-          className="mt-4 w-fit rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+          className="mt-4 w-fit"
         >
           Check
-        </button>
-      </section>
+        </GlassButton>
+      </GlassPanel>
 
       {busy && (
-        <div data-testid="check-loading" role="status" className={GLASS_PANEL}>
-          <div className="animate-pulse space-y-3">
-            <div className="h-4 w-1/3 rounded bg-slate-800" />
-            <div className="h-2 w-full rounded-full bg-slate-800/80" />
-          </div>
+        <GlassPanel data-testid="check-loading" role="status" aria-busy="true">
+          <GlassSkeleton className="h-4 w-1/3" variant="block" />
+          <GlassSkeleton className="mt-3 w-full" variant="text" lines={3} />
           <p className="mt-4 font-mono text-sm text-slate-400">
             {phase === 'embedding' ? 'embedding locally…' : 'searching the corpus…'}
           </p>
           {lastLog?.message && (
             <p className="mt-1 font-mono text-xs text-slate-600">{lastLog.message}</p>
           )}
-        </div>
+        </GlassPanel>
       )}
 
       {error && (

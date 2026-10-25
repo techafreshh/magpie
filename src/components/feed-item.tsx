@@ -10,11 +10,10 @@
  * All user-sourced content — snippet, chip labels, count — renders through
  * `{expr}` text children only; React escapes `<`, `>` and `&`, so a seeded
  * report containing `<img src=x>` displays as literal text and no `<a>`,
- * `<img>` or `<script>` tag can ever be attributed to it. The `snippet()`,
- * `reports()` and `CHIP_CLASSES` helpers are deliberate twins of the reviewed
- * `verdict-card.tsx` idioms (kept private rather than refactoring that card —
- * see issue #11's plan); the only new logic is `formatRelative()` and the
- * Hide interaction.
+ * `<img>` or `<script>` tag can ever be attributed to it. The `snippet()` and
+ * `reports()` helpers are deliberate twins of the reviewed `verdict-card.tsx`
+ * idioms (kept private rather than refactoring that card — see issue #11's
+ * plan); the chip styling itself moved to GlassBadge in issue #17.
  *
  * Public surface: `FeedItem`.
  */

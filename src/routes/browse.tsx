@@ -29,7 +29,7 @@
  * Public surface: default `Browse`.
  */
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { FEED_PAGE_SIZE, listRecentReports } from '../lib/feed';
 import type { FeedItemData } from '../lib/feed';
 import { getCorpusStats } from '../lib/stats';
@@ -38,11 +38,9 @@ import { hideReport } from '../lib/reports';
 import { useSession } from '../lib/useSession';
 import { StatsStrip } from '../components/stats-strip';
 import { FeedItem } from '../components/feed-item';
-
-const GLASS_PANEL = 'rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg backdrop-blur';
-
-const BUTTON_CLASSES =
-  'rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500 disabled:opacity-50 disabled:hover:bg-sky-600';
+import { GlassButton } from '../components/glassyui/glass-button';
+import { GlassPanel } from '../components/glassyui/glass-panel';
+import { GlassSkeleton } from '../components/glassyui/glass-skeleton';
 
 /** Parse the 1-based `?page=` value; non-numeric, fractional or < 1 falls back to page 1. */
 function parsePage(raw: string | null): number {
@@ -138,21 +136,24 @@ export default function Browse() {
       )}
 
       {items === null && !error && (
-        <div data-testid="browse-loading" role="status" className={GLASS_PANEL}>
-          <div className="animate-pulse space-y-3">
-            <div className="h-4 w-1/3 rounded bg-slate-800" />
-            <div className="h-2 w-3/4 rounded-full bg-slate-800/80" />
-            <div className="h-2 w-2/3 rounded-full bg-slate-800/80" />
-            <div className="h-2 w-full rounded-full bg-slate-800/80" />
-          </div>
+        <GlassPanel data-testid="browse-loading" role="status" aria-busy="true">
+          <GlassSkeleton className="h-4 w-1/3" variant="block" />
+          <GlassSkeleton className="mt-3 w-full" variant="text" lines={3} />
           <p className="mt-4 font-mono text-sm text-slate-400">loading the feed…</p>
-        </div>
+        </GlassPanel>
       )}
 
       {items !== null && !error && items.length === 0 && (
-        <p data-testid="browse-empty" className={GLASS_PANEL}>
-          No reports on this page yet — the feed fills up as the community reports scams.
-        </p>
+        <GlassPanel data-testid="browse-empty">
+          {/* Empty-state copy: "No reports yet" is the issue-#17 acceptance pin — keep verbatim. */}
+          <p>No reports yet — be the first to report a scam.</p>
+          <Link
+            to="/report"
+            className="mt-3 inline-block text-sky-400 underline-offset-4 hover:underline"
+          >
+            Report a scam →
+          </Link>
+        </GlassPanel>
       )}
 
       {items !== null && !error && items.length > 0 && (
@@ -163,27 +164,27 @@ export default function Browse() {
             ))}
           </ol>
           <nav aria-label="Feed pagination" className="flex items-center justify-between gap-4">
-            <button
+            <GlassButton
               type="button"
+              lens={false}
               data-testid="feed-prev"
               disabled={page <= 1}
               onClick={() => goto(page - 1)}
-              className={BUTTON_CLASSES}
             >
               Prev
-            </button>
+            </GlassButton>
             <span data-testid="browse-page" className="font-mono text-sm text-slate-400">
               Page {page}
             </span>
-            <button
+            <GlassButton
               type="button"
+              lens={false}
               data-testid="feed-next"
               disabled={!hasNext}
               onClick={() => goto(page + 1)}
-              className={BUTTON_CLASSES}
             >
               Next
-            </button>
+            </GlassButton>
           </nav>
         </>
       )}

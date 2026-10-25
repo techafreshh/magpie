@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router';
 import { Toast } from '../components/toast';
-
-const GLASS_PANEL = 'rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg backdrop-blur';
+import { GlassToastProvider, GlassToastViewport } from '../components/glassyui/glass-toast';
+import { GlassPanel } from '../components/glassyui/glass-panel';
 
 /**
  * Post-submit confirmation (issues #8 + #9). Standalone route — reads only
@@ -25,7 +25,11 @@ export default function ReportSuccess() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
       <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
-      <section data-testid="report-success" aria-live="polite" className={GLASS_PANEL}>
+      <GlassToastProvider swipeDirection="left">
+        {/* Radix Toast.Root renders nothing until open — `defaultOpen` on the
+            Toast below handles that; the viewport portals into <body>. */}
+        <GlassToastViewport />
+        <GlassPanel data-testid="report-success" aria-live="polite">
         {merged && count !== null && <Toast message={`merged — now ${count} reports`} />}
         {merged && count !== null ? (
           <>
@@ -66,7 +70,8 @@ export default function ReportSuccess() {
             Report another →
           </Link>
         </div>
-      </section>
+        </GlassPanel>
+      </GlassToastProvider>
     </main>
   );
 }

@@ -24,6 +24,9 @@ import { THRESHOLDS } from '../lib/constants';
 import type { VerdictTier } from '../lib/constants';
 import { SimilarityBar } from './similarity-bar';
 import type { SimilarityTone } from './similarity-bar';
+import { GlassBadge } from './glassyui/glass-badge';
+import type { GlassBadgeTone } from './glassyui/glass-badge';
+import { GlassPanel } from './glassyui/glass-panel';
 
 /** Exact copy for the no-reports tier — pinned verbatim by the issue. */
 export const NO_REPORTS_COPY = 'no prior reports — unseen is not safe, stay sharp';
@@ -51,8 +54,12 @@ const TIER_HEADLINE: Record<VerdictTier, string> = {
   NO_REPORTS: 'Nothing in the corpus resembles this message.',
 };
 
-const CHIP_CLASSES =
-  'rounded-full border border-slate-700/70 bg-slate-800/60 px-2 py-0.5 text-xs text-slate-300';
+const CHIP_TONES: Record<string, GlassBadgeTone> = {
+  category: 'purple',
+  channel: 'blue',
+  region: 'green',
+  reports: 'orange',
+};
 
 /** First 120 chars, with an ellipsis when the stored text runs longer. */
 function snippet(text: string): string | null {
@@ -88,24 +95,24 @@ function MatchRow({ match }: { match: SearchResult }) {
       )}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {match.category && (
-          <span data-testid="match-category" className={CHIP_CLASSES}>
+          <GlassBadge data-testid="match-category" tone={CHIP_TONES.category}>
             {match.category}
-          </span>
+          </GlassBadge>
         )}
         {match.channel && (
-          <span data-testid="match-channel" className={CHIP_CLASSES}>
+          <GlassBadge data-testid="match-channel" tone={CHIP_TONES.channel}>
             {match.channel}
-          </span>
+          </GlassBadge>
         )}
         {match.region && (
-          <span data-testid="match-region" className={CHIP_CLASSES}>
+          <GlassBadge data-testid="match-region" tone={CHIP_TONES.region}>
             {match.region}
-          </span>
+          </GlassBadge>
         )}
         {reportsText && (
-          <span data-testid="match-reports" className={CHIP_CLASSES}>
+          <GlassBadge data-testid="match-reports" tone={CHIP_TONES.reports}>
             {reportsText}
-          </span>
+          </GlassBadge>
         )}
         {match.firstSeen && (
           <span className="font-mono text-xs text-slate-500">first seen {match.firstSeen}</span>
@@ -129,11 +136,7 @@ export function VerdictCard({
 
   if (verdict.tier === 'NO_REPORTS') {
     return (
-      <section
-        data-testid="verdict-card"
-        aria-label="Check verdict"
-        className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg backdrop-blur"
-      >
+      <GlassPanel data-testid="verdict-card" role="region" aria-label="Check verdict">
         <p data-testid="verdict-copy" className="text-lg font-medium text-slate-200">
           {NO_REPORTS_COPY}
         </p>
@@ -149,17 +152,13 @@ export function VerdictCard({
         >
           Report this message
         </Link>
-      </section>
+      </GlassPanel>
     );
   }
 
   const badge = TIER_BADGE[verdict.tier];
   return (
-    <section
-      data-testid="verdict-card"
-      aria-label="Check verdict"
-      className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg backdrop-blur"
-    >
+    <GlassPanel data-testid="verdict-card" role="region" aria-label="Check verdict">
       <p data-testid="verdict-tier" className="flex items-center gap-3">
         <span className={`rounded-full border px-3 py-1 text-sm font-bold tracking-wide ${badge.classes}`}>
           {badge.label}
@@ -171,6 +170,6 @@ export function VerdictCard({
           <MatchRow key={match.id} match={match} />
         ))}
       </ol>
-    </section>
+    </GlassPanel>
   );
 }
