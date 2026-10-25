@@ -14,9 +14,48 @@
  *
  * Public surface: `Header`.
  */
+import { useEffect } from 'react';
 import { Link } from 'react-router';
+import { GlassButton } from './glassyui/glass-button';
+import { usePreferences } from './glassyui/glass-provider';
 import { getAccount } from '../lib/appwrite';
 import { useSession } from '../lib/useSession';
+
+/** ThemeToggle (issue #17): flips the GlassyUI preference — which the provider
+ * persists synchronously to localStorage (key `glassy-ui-preferences`) and
+ * mirrors onto `<html data-lg-theme>` — and additionally mirrors the theme onto
+ * `documentElement.classList` (contains `dark` ↔ light state). GlassyUI itself
+ * never touches classes, so the class mirror is this toggle's job, re-synced on
+ * restore (e.g. after a reload with a persisted choice). */
+export function ThemeToggle() {
+  const { preferences, setPreferences } = usePreferences();
+  const dark = preferences.theme === 'dark';
+
+  function toggle() {
+    const next = dark ? 'light' : 'dark';
+    setPreferences({ theme: next });
+    document.documentElement.classList.toggle('dark', next === 'dark');
+  }
+
+  // Keep the class in step with the provider state — this is what restores
+  // the persisted choice after a reload (and covers the initial mount).
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+  }, [dark]);
+
+  return (
+    <GlassButton
+      type="button"
+      variant="ghost"
+      size="sm"
+      data-testid="theme-toggle"
+      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      onClick={toggle}
+    >
+      {dark ? '☾' : '☀'}
+    </GlassButton>
+  );
+}
 
 export function Header() {
   const session = useSession();
@@ -38,30 +77,33 @@ export function Header() {
         <Link to="/" className="text-lg font-bold tracking-tight text-slate-100">
           Magpie
         </Link>
-        {session.status === 'user' ? (
-          <div className="flex items-center gap-4">
-            <span data-testid="header-user" className="text-sm text-slate-300">
-              {session.user.email || 'signed in'}
-            </span>
-            <button
-              type="button"
-              data-testid="sign-out"
-              onClick={handleSignOut}
-              className="rounded-xl border border-slate-700 px-4 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          {session.status === 'user' ? (
+            <>
+              <span data-testid="header-user" className="text-sm text-slate-300">
+                {session.user.email || 'signed in'}
+              </span>
+              <button
+                type="button"
+                data-testid="sign-out"
+                onClick={handleSignOut}
+                className="rounded-xl border border-slate-700 px-4 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            // `checking` renders like anonymous — the link never flickers while account.get() resolves.
+            <Link
+              to="/login"
+              data-testid="sign-in"
+              className="text-sm text-sky-400 underline-offset-4 hover:underline"
             >
-              Sign out
-            </button>
-          </div>
-        ) : (
-          // `checking` renders like anonymous — the link never flickers while account.get() resolves.
-          <Link
-            to="/login"
-            data-testid="sign-in"
-            className="text-sm text-sky-400 underline-offset-4 hover:underline"
-          >
-            Sign in
-          </Link>
-        )}
+              Sign in
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );
