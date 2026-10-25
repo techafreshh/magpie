@@ -52,6 +52,8 @@ export interface FeedItemData {
   channel: string;
   region: string;
   reportCount: number;
+  /** Appwrite `$id` of the reporter who created this report (drives the Hide button, issue #13). */
+  reporterId: string;
   /** ISO timestamp of the document's `$createdAt` — the feed's sort key. */
   createdAt: string;
 }
@@ -87,6 +89,7 @@ export async function listRecentReports(page: number): Promise<FeedItemData[]> {
       channel: doc.metadata?.channel ?? '',
       region: doc.metadata?.region ?? '',
       reportCount: doc.metadata?.report_count ?? 0,
+      reporterId: doc.metadata?.reporter_id ?? '',
       createdAt: doc.$createdAt,
     }));
 }

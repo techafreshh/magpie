@@ -18,6 +18,14 @@
  * its own `cancelled` guard) — independent of the feed fetch, so a stats
  * failure degrades to its own amber line without ever blanking the feed.
  *
+ * Issue #13: the session resolves once per mount (`useSession`) and travels
+ * down as `currentUserId`; rows the user authored get a Hide chip whose
+ * `handleHide` soft-hides the document (`hideReport`) and drops the row from
+ * local state — gone immediately, and every later refetch stays consistent
+ * because the server filter excludes `hidden:'true'`. A failed hide leaves
+ * the row with FeedItem's inline error line. The fetch effect stays keyed on
+ * `page` only — session resolution must not refetch the feed.
+ *
  * Public surface: default `Browse`.
  */
 import { useEffect, useState } from 'react';
@@ -26,6 +34,8 @@ import { FEED_PAGE_SIZE, listRecentReports } from '../lib/feed';
 import type { FeedItemData } from '../lib/feed';
 import { getCorpusStats } from '../lib/stats';
 import type { CorpusStats } from '../lib/stats';
+import { hideReport } from '../lib/reports';
+import { useSession } from '../lib/useSession';
 import { StatsStrip } from '../components/stats-strip';
 import { FeedItem } from '../components/feed-item';
 
@@ -43,6 +53,10 @@ function parsePage(raw: string | null): number {
 export default function Browse() {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePage(searchParams.get('page'));
+  // Resolved once (report.tsx idiom): any failure degrades to `undefined`,
+  // i.e. anonymous — no Hide buttons, never an error. Not a fetch dependency.
+  const session = useSession();
+  const currentUserId = session.status === 'user' ? session.user.$id : undefined;
   const [items, setItems] = useState<FeedItemData[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Stats-strip state, fetched independently of the feed: a stats failure
@@ -95,6 +109,14 @@ export default function Browse() {
     setSearchParams({ page: String(next) });
   }
 
+  // Soft-hide (issue #13): the library call does the patch; dropping the id
+  // from local state makes the row vanish with no refetch. No try/catch — a
+  // rejection propagates to FeedItem's inline error line and the row stays.
+  async function handleHide(id: string): Promise<void> {
+    await hideReport(id);
+    setItems((prev) => prev?.filter((i) => i.id !== id) ?? prev);
+  }
+
   const hasNext = (items?.length ?? 0) === FEED_PAGE_SIZE;
 
   return (
@@ -137,7 +159,7 @@ export default function Browse() {
         <>
           <ol className="space-y-4">
             {items.map((item) => (
-              <FeedItem key={item.id} item={item} />
+              <FeedItem key={item.id} item={item} currentUserId={currentUserId} onHide={handleHide} />
             ))}
           </ol>
           <nav aria-label="Feed pagination" className="flex items-center justify-between gap-4">
