@@ -118,7 +118,7 @@ export default function Browse() {
   const hasNext = (items?.length ?? 0) === FEED_PAGE_SIZE;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
+    <main className="mx-auto flex min-h-screen w-full flex-col gap-8 px-6 py-16">
       <header>
         <h1 className="text-3xl font-bold tracking-tight">Browse recent reports</h1>
         <p className="mt-3 text-slate-400">
@@ -170,6 +170,7 @@ export default function Browse() {
               data-testid="feed-prev"
               disabled={page <= 1}
               onClick={() => goto(page - 1)}
+              className="min-h-[44px] min-w-[44px]"
             >
               Prev
             </GlassButton>
@@ -182,6 +183,7 @@ export default function Browse() {
               data-testid="feed-next"
               disabled={!hasNext}
               onClick={() => goto(page + 1)}
+              className="min-h-[44px] min-w-[44px]"
             >
               Next
             </GlassButton>

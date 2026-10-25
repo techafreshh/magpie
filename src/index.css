@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
-/* Dark-first palette: the app is a dark glass UI; keep the pre-hydration shell consistent. */
+/* Dark-first palette: the app is a dark glass UI; keep the pre-hydration shell
+   consistent. Background matches the theme-color meta (#0b0f14, issue #18) so
+   the browser chrome tints the same color as the page. */
 body {
-  background-color: #0b1120;
+  background-color: #0b0f14;
   color: #e2e8f0;
 }
 

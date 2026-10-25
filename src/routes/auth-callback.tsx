@@ -64,7 +64,7 @@ export default function AuthCallback() {
 
   if (!userId || !secret) {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
+      <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
         <h1 className="text-3xl font-bold tracking-tight">Sign-in link</h1>
         <section aria-label="Invalid sign-in link" data-testid="callback-invalid" className={PANEL}>
           <p className="text-slate-200">
@@ -85,7 +85,7 @@ export default function AuthCallback() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
+    <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
       <h1 className="text-3xl font-bold tracking-tight">Signing you in…</h1>
       {error === null ? (
         <p role="status" className="font-mono text-sm text-slate-400">

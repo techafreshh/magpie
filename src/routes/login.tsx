@@ -51,7 +51,7 @@ export default function Login() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
+    <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
       <h1 className="text-3xl font-bold tracking-tight">Sign in</h1>
 
       {sentTo === null ? (
@@ -67,13 +67,13 @@ export default function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="mt-3 w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600"
+            className="mt-3 min-h-[44px] w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-base text-slate-200 placeholder:text-slate-600"
           />
           <button
             type="submit"
             data-testid="login-submit"
             disabled={busy}
-            className="mt-4 w-fit rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+            className="mt-4 min-h-[44px] min-w-[44px] w-fit rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500 disabled:opacity-50"
           >
             {busy ? 'Sending magic link…' : 'Send magic link'}
           </button>
@@ -102,7 +102,7 @@ export default function Login() {
               setSentTo(null);
               setEmail('');
             }}
-            className="mt-4 w-fit rounded-xl border border-slate-700 px-4 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
+            className="mt-4 min-h-[44px] min-w-[44px] w-fit rounded-xl border border-slate-700 px-4 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
           >
             Use a different email
           </button>

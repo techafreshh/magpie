@@ -42,7 +42,7 @@ export default function Check() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
+    <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
       <h1 className="text-3xl font-bold tracking-tight">Check</h1>
 
       <p className="text-sm text-slate-400">
@@ -60,7 +60,7 @@ export default function Check() {
         onChange={(e) => setText(e.target.value)}
         rows={4}
         placeholder="Paste a suspicious message…"
-        className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 font-mono text-sm text-slate-200"
+        className="min-h-[44px] rounded-2xl border border-slate-800 bg-slate-900/60 p-6 font-mono text-base text-slate-200"
       />
 
       <GlassButton
@@ -69,6 +69,7 @@ export default function Check() {
         data-testid="embed-submit"
         disabled={busy}
         onClick={handleEmbed}
+        className="min-h-[44px] min-w-[44px]"
       >
         Embed
       </GlassButton>
@@ -104,7 +105,7 @@ export default function Check() {
         <h2 className="text-lg font-semibold text-slate-200">Embedder log</h2>
         <pre
           data-testid="embed-log"
-          className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 font-mono text-sm text-emerald-300"
+          className="mt-4 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60 p-6 font-mono text-sm text-emerald-300"
         >
           {log.map(formatLine).join('\n')}
         </pre>

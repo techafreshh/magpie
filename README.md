@@ -164,6 +164,29 @@ npm run tune
 
 Each variant prints one line — `variant <0-based line index>: sim=<score> tier=<HIGH_RISK\|SUSPICIOUS\|NO_REPORTS>` — followed by a summary line (pass rate against `SUSPICIOUS`), the similarity distribution, the size of the merge band, and a data-driven `suggest:` verdict on the thresholds.
 
+## Performance
+
+The PRD's quality indicator is a **Lighthouse mobile performance score ≥ 85** for the core loop (load → check → verdict), measured against the committed production build served by `npm start` (the same surface the grading probe and any deployment see).
+
+Operator command (Lighthouse CLI defaults to mobile emulation on a throttled Slow 4G network):
+
+```bash
+npm start                                          # serves the committed dist/ on :5173
+npx --yes lighthouse http://127.0.0.1:5173/ \
+  --only-categories=performance \
+  --output=json --output-path=lighthouse.json \
+  --chrome-flags="--headless --no-sandbox"
+```
+
+**Latest recorded run:** performance **99 / 100** (Lighthouse 13.5.0, mobile emulation + Slow 4G throttling, chrome-headless-shell 156.0.8078.47, against `npm start` serving the committed `dist/` — FCP 1.7 s, LCP 1.7 s, TBT 0 ms, CLS 0, Speed Index 1.7 s). The gate — mobile performance ≥ 85 — passes with headroom; re-run the command above whenever `dist/` changes and record the new score here.
+
+Levers already shipped for the score (issue #18):
+
+- **Gzip on the static server** ([`server.mjs`](server.mjs)): the ~498 KB JS bundle and ~122 KB CSS transfer ~4–6× smaller over the wire when the client sends `Accept-Encoding: gzip` — the single largest render-blocking payload on the page.
+- **Deferred model load**: the 21.6 MB `.wasm` / ~23 MB quantized model is fetched by the Web Worker only when the embedder first runs (post-load warmup, see `src/lib/embedder.ts`) — it is never in the critical path of first paint or TTI.
+- **No blocking webfonts, no blocking images**: the page is system-font text; the only image is a ~500 B inline-icon SVG favicon.
+- **Text-only LCP**: the pre-hydration shell in [`index.html`](index.html) is plain HTML, so the largest contentful paint lands from markup alone, before any JS parses.
+
 ## Plans
 
 The full product requirements document lives in [`.agents/PRDs/PRD.md`](.agents/PRDs/PRD.md) (architecture, data model, milestones, demo script).
