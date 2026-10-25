@@ -32,6 +32,8 @@ Thumbs.db
 # local scratch
 /tmp
 *.local
+# seed-run checkpoint (per-operator record of which corpus lines are already in VectorsDB)
+.seed-checkpoint.json
 
 # factory harness session logs (ephemeral, not product work)
 .pdf-sessions/

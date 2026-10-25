@@ -88,6 +88,22 @@ npm run setup:db
 
 Output shows `created` for every resource the first run makes and `exists` when it is already provisioned; the permission wire strings (`read("any")`, `create("users")`, `update("users")`) and the document-level `delete("user:<uid>")` template are printed at the end for reference.
 
+### 3. Load the seed corpus
+
+Populate the collection with the committed scam corpus ([`data/seeds/corpus.jsonl`](data/seeds/corpus.jsonl), 360 lines):
+
+```bash
+npm run seed
+```
+
+Same `.env.local` variables as step 1 (`APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`, `APPWRITE_API_KEY` — the key needs the **`vectorsdb`** and **`documents`** scopes). Like `setup:db`, this step is **operator-only**: CI and laps never hold the key.
+
+For every line the script embeds the text **on-device** with the same quantized `Xenova/all-MiniLM-L6-v2` model the browser uses (384 dims, q8, mean pooling, normalized — one shared cosine space), then creates one document with the vector plus the line's metadata (`text`, `category`, `channel`, `region`, `first_seen`, `report_count`) and **overscribes `$createdAt` with `first_seen`** so the feed's date sort reads realistic ages (the override is verified on the first insert and the run aborts if the server ignores it).
+
+One-time model note: the first run downloads the quantized model weights (~23 MB) into transformers.js's HTTP cache (`.cache/`, gitignored) — the same fetch the browser does on first use.
+
+Seeding is idempotent: a gitignored `.seed-checkpoint.json` at the repo root records every line already inserted (keyed by the full SHA-256 of its text), so an interrupted or repeated run skips what is done; deterministic document IDs (`seed-<text-hash>`) are the second layer — even if the checkpoint is deleted, already-seeded lines return 409 and are recorded, never duplicated.
+
 ## Seed corpus
 
 The scam corpus the app matches against ships as committed seed data: [`data/seeds/corpus.jsonl`](data/seeds/corpus.jsonl) — **360 anonymized scam texts** (180 dataset-modeled + 100 hand-written Nigerian-context originals + 80 reworded tuning variants). One JSON document per line:
@@ -121,7 +137,7 @@ npm run corpus:check   # re-run the full acceptance contract + regeneration diff
 | `electricsheepafrica/africa-smishing-sms-phishing` (HF) | 21 Nigerian bank-app/BVN/promo SMS | repo license |
 | Hand-written Nigerian-context texts + variants | 100 + 80 originals | original |
 
-Insertion into VectorsDB is a separate, operator-side step (embedding + backdated `$createdAt` needs an API key — laps never hold one); the seed inserter is a later deliverable.
+Insertion into VectorsDB is operator-side: `npm run seed` (see [Database setup](#database-setup), step 3) — embedding the lines and backdating `$createdAt` both need the operator's API key, which laps never hold.
 
 ## Plans
 
