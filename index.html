@@ -10,6 +10,12 @@
     <div id="root">
       <main>
         <h1>Magpie</h1>
+        <p>Paste a suspicious message — it gets embedded in your browser and matched against the crowd-sourced corpus of reported scams.</p>
+        <label for="check-input">Message to check</label>
+        <textarea id="check-input" data-testid="check-input" maxlength="1000" rows="5" placeholder="Paste a suspicious message…"></textarea>
+        <span data-testid="char-counter">0/1000</span>
+        <p>Long input is capped at 1,000 characters; the embedding model reads roughly the first ~256 tokens. Your text never leaves this device — only an anonymous vector is sent for search.</p>
+        <button type="button" disabled>Check</button>
         <pre>{"status":"ok","appwrite":"unreachable"}</pre>
       </main>
     </div>
