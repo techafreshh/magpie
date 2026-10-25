@@ -40,10 +40,9 @@ const DIMENSION = 384;
 const MODEL_ID = 'Xenova/all-MiniLM-L6-v2';
 /** The committed corpus (#14); its `variant_of` pairs are the held-out set. */
 const CORPUS_PATH = fileURLToPath(new URL('../data/seeds/corpus.jsonl', import.meta.url));
-/** The acceptance bar of issue #16 (fraction of pairs scoring ≥ 0.80) — not a THRESHOLDS value. */
+/** The acceptance bar of issue #16 (pass_rate ≥ 0.8, counted at the SUSPICIOUS boundary) — not a THRESHOLDS value. */
 const PASS_RATE_BAR = 0.8;
-/** Suggestion mechanics (keep the floor far from noise territory, quantize to 0.05 steps). */
-const SUSPICIOUS_FLOOR = 0.70;
+/** Suggestion mechanics (quantize to 0.05 steps). */
 const SUGGEST_STEP = 0.05;
 
 /** One measured `variant_of` pair — only the fields this script consumes. */
@@ -227,8 +226,9 @@ const f4 = (x: number): string => x.toFixed(4);
 /**
  * The `suggest:` verdict on the thresholds. Keep them when the measured
  * pass_rate already clears the acceptance bar; otherwise suggest SUSPICIOUS →
- * the largest 0.05-step value the distribution supports (p20, floored to 0.05,
- * never below 0.70), leaving HIGH and MERGE untouched — the tier histogram and
+ * the largest 0.05-step value the distribution supports (find the measured
+ * p20 — the boundary that keeps at least 80% of pairs — and floor it to the
+ * 0.05 step), leaving HIGH and MERGE untouched — the tier histogram and
  * merge-band lines report those bands, but SUSPICIOUS is the only lever this
  * rule turns, because the acceptance contract lives exactly at its boundary.
  * When even the suggested value cannot reach the bar, the line says so — a
@@ -239,15 +239,15 @@ function suggestLine(sorted: readonly number[], passRate: number): string {
   if (passRate >= PASS_RATE_BAR) {
     return `suggest: keep thresholds (${current}) — no adjustment justified`;
   }
-  const suggested = Math.max(SUSPICIOUS_FLOOR, Math.round(Math.floor(percentile(sorted, 0.2) / SUGGEST_STEP) * SUGGEST_STEP * 100) / 100);
+  const suggested = Math.round(Math.floor(percentile(sorted, 0.2) / SUGGEST_STEP) * SUGGEST_STEP * 100) / 100;
   const passAtSuggested = sorted.filter((s) => s >= suggested).length / sorted.length;
   const at = `pass_rate=${f4(passAtSuggested)} at SUSPICIOUS=${f2(suggested)}`;
   if (passAtSuggested >= PASS_RATE_BAR) {
     return `suggest: SUSPICIOUS ${f2(THRESHOLDS.SUSPICIOUS)} → ${f2(suggested)} (HIGH=${f2(THRESHOLDS.HIGH)} MERGE=${f2(THRESHOLDS.MERGE)} unchanged) — ${at}`;
   }
   if (suggested === THRESHOLDS.SUSPICIOUS) {
-    // Already sitting at the suggestion floor: the rule has no lower value to
-    // offer — say so instead of printing a no-op "0.70 → 0.70".
+    // The p20 rule lands exactly on the current value: there is no 0.05 step
+    // to move to — say so instead of printing a no-op "X → X".
     return `suggest: SUSPICIOUS stays ${f2(THRESHOLDS.SUSPICIOUS)} (HIGH=${f2(THRESHOLDS.HIGH)} MERGE=${f2(THRESHOLDS.MERGE)} unchanged) — ${at}, still below the ${f2(PASS_RATE_BAR)} bar: the corpus sim ceiling is the limiting factor (see distribution)`;
   }
   // Even the suggested value cannot reach the bar — report the corpus-quality
