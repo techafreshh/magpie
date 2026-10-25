@@ -32,3 +32,6 @@ Thumbs.db
 # local scratch
 /tmp
 *.local
+
+# factory harness session logs (ephemeral, not product work)
+.pdf-sessions/
