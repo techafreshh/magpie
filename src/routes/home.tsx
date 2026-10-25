@@ -40,9 +40,14 @@ export default function Home() {
         </dl>
       </section>
 
-      <Link to="/health" className="text-sky-400 underline-offset-4 hover:underline">
-        Health check →
-      </Link>
+      <div className="flex gap-6">
+        <Link to="/check" className="text-sky-400 underline-offset-4 hover:underline">
+          Check page →
+        </Link>
+        <Link to="/health" className="text-sky-400 underline-offset-4 hover:underline">
+          Health check →
+        </Link>
+      </div>
     </main>
   );
 }
