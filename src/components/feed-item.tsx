@@ -19,13 +19,19 @@
  */
 import { useState } from 'react';
 import type { FeedItemData } from '../lib/feed';
+import { GlassBadge } from './glassyui/glass-badge';
+import type { GlassBadgeTone } from './glassyui/glass-badge';
 
 /** Snippet length per feed item: first 120 chars of the stored text (verdict-card convention). */
 const SNIPPET_CHARS = 120;
 
-/** Mirror of `verdict-card.tsx`'s chip pill styling. */
-const CHIP_CLASSES =
-  'rounded-full border border-slate-700/70 bg-slate-800/60 px-2 py-0.5 text-xs text-slate-300';
+/** Chip tones shared with `verdict-card.tsx` (issue #17 mapping). */
+const CHIP_TONES: Record<string, GlassBadgeTone> = {
+  category: 'purple',
+  channel: 'blue',
+  region: 'green',
+  reports: 'orange',
+};
 
 /** First 120 chars, with an ellipsis when the stored text runs longer. */
 function snippet(text: string): string | null {
@@ -106,24 +112,24 @@ export function FeedItem({
       )}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {item.category && (
-          <span data-testid="feed-category" className={CHIP_CLASSES}>
+          <GlassBadge data-testid="feed-category" tone={CHIP_TONES.category}>
             {item.category}
-          </span>
+          </GlassBadge>
         )}
         {item.channel && (
-          <span data-testid="feed-channel" className={CHIP_CLASSES}>
+          <GlassBadge data-testid="feed-channel" tone={CHIP_TONES.channel}>
             {item.channel}
-          </span>
+          </GlassBadge>
         )}
         {item.region && (
-          <span data-testid="feed-region" className={CHIP_CLASSES}>
+          <GlassBadge data-testid="feed-region" tone={CHIP_TONES.region}>
             {item.region}
-          </span>
+          </GlassBadge>
         )}
         {reportsText && (
-          <span data-testid="feed-reports" className={CHIP_CLASSES}>
+          <GlassBadge data-testid="feed-reports" tone={CHIP_TONES.reports}>
             {reportsText}
-          </span>
+          </GlassBadge>
         )}
         {item.createdAt && (
           <span data-testid="feed-created" className="font-mono text-xs text-slate-500">
