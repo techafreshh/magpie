@@ -35,20 +35,28 @@ export default function AuthCallback() {
     if (!userId || !secret || firedRef.current) return;
     firedRef.current = true;
     let cancelled = false;
-    getAccount()
-      .updateMagicURLSession({ userId, secret })
-      .then(() => {
-        // Redirect regardless of `cancelled`: StrictMode's dev double-invoke
-        // (setup -> cleanup -> setup) cancels the only in-flight call while
-        // the fire-once guard blocks a re-fire, so gating the redirect on
-        // `cancelled` would strand a signed-in user on this page. Redirecting
-        // home is safe even post-unmount; only the error state write must
-        // respect `cancelled`.
-        window.location.assign('/');
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      });
+    try {
+      // getAccount() throws synchronously when env is missing — before .catch()
+      // can attach — so the guarded call must live in try/catch: a sync throw
+      // takes the recovery panel instead of escaping the effect and unmounting
+      // the tree (same fix as useSession in 2f848e7).
+      getAccount()
+        .updateMagicURLSession({ userId, secret })
+        .then(() => {
+          // Redirect regardless of `cancelled`: StrictMode's dev double-invoke
+          // (setup -> cleanup -> setup) cancels the only in-flight call while
+          // the fire-once guard blocks a re-fire, so gating the redirect on
+          // `cancelled` would strand a signed-in user on this page. Redirecting
+          // home is safe even post-unmount; only the error state write must
+          // respect `cancelled`.
+          window.location.assign('/');
+        })
+        .catch((err) => {
+          if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        });
+    } catch (err) {
+      if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+    }
     return () => {
       cancelled = true;
     };
