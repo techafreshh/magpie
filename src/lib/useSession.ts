@@ -19,14 +19,21 @@ export function useSession(): SessionState {
 
   useEffect(() => {
     let cancelled = false;
-    getAccount()
-      .get()
-      .then((user) => {
-        if (!cancelled) setState({ status: 'user', user });
-      })
-      .catch(() => {
-        if (!cancelled) setState({ status: 'anonymous' });
-      });
+    try {
+      // getAccount() throws synchronously when env is missing — before .catch()
+      // can attach — so the guarded call also degrades to `anonymous` instead of
+      // escaping the effect and unmounting the tree.
+      getAccount()
+        .get()
+        .then((user) => {
+          if (!cancelled) setState({ status: 'user', user });
+        })
+        .catch(() => {
+          if (!cancelled) setState({ status: 'anonymous' });
+        });
+    } catch {
+      if (!cancelled) setState({ status: 'anonymous' });
+    }
     return () => {
       cancelled = true;
     };
