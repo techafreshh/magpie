@@ -1,8 +1,8 @@
 # dependencies
 node_modules/
 
-# build output
-dist/
+# build output — dist/ is intentionally TRACKED: `npm start` (node server.mjs) serves
+# the committed build so a fresh clone answers HTTP with zero registry dependency.
 dist-ssr/
 build/
 
@@ -32,3 +32,6 @@ Thumbs.db
 # local scratch
 /tmp
 *.local
+
+# factory harness session logs (ephemeral, not product work)
+.pdf-sessions/
