@@ -12,6 +12,48 @@
 
 Your message text never leaves your device: an embedding model (all-MiniLM-L6-v2, 384 dims) runs locally via transformers.js in a Web Worker. Only an opaque vector is sent to **Appwrite VectorsDB**, where an HNSW cosine index ranks the community's scam reports by semantic similarity. High similarity → HIGH RISK verdict, with the matching reports, categories, and report counts.
 
+## Architecture
+
+The shape matches the PRD's core-architecture sketch (§6 of [`.agents/PRDs/PRD.md`](.agents/PRDs/PRD.md)): everything persistent lives in one VectorsDB database, the browser talks to it directly, and the only server-side key sits in the offline seed script.
+
+```mermaid
+flowchart LR
+    subgraph browser["Browser - no custom backend"]
+        ui["React 19 SPA (Vite + Tailwind v4 + GlassyUI)<br/>Check / Report / Browse / Stats"]
+        worker["Web Worker:<br/>transformers.js all-MiniLM-L6-v2<br/>q8, mean pooling, 384-dim vector"]
+        sdk["Appwrite web SDK<br/>createQuery: vectorCosine k=10<br/>createDocument / updateDocument<br/>magic-link session"]
+        ui -- "text (on-device only)" --> worker
+        worker -- "vector of 384 floats" --> sdk
+    end
+    subgraph caas["Appwrite Cloud (fra)"]
+        vdb["VectorsDB database magpie, collection reports<br/>HNSW cosine index on embeddings<br/>Read: Any / Create+Update: users<br/>doc-level delete for owner"]
+        auth["Auth: magic link"]
+    end
+    seed["Node seed script (offline, operator only)<br/>node-appwrite + API key<br/>same transformers.js pipeline<br/>backdates createdAt via timestamp overrides"]
+    sdk -- "HTTPS; no API key in the runtime" --> vdb
+    sdk --> auth
+    seed -- "bulk create" --> vdb
+```
+
+Key facts, each enforced in code rather than aspirational:
+
+- **No custom backend.** All data access is the Appwrite web SDK from the browser, gated by collection permissions — zero API keys in the runtime; the only server key lives in the offline seed script's gitignored `.env.local`.
+- **One database.** Everything persistent is the single VectorsDB database `magpie` → collection `reports` ([`src/lib/appwrite.ts`](src/lib/appwrite.ts)) — the hackathon's one-database rule is compliance by design, not by discipline.
+- **Embedding boundary.** Every embedding goes through [`src/lib/embedder.ts`](src/lib/embedder.ts) (`embed(text)` → 384-dim vector); the documented one-file swap to Appwrite's built-in `createTextEmbeddings` is the only alternative, and embedding sources are never mixed inside one corpus.
+- **Transport.** The kNN call posts `createQuery` with `Query.vectorCosine` + `Query.limit(10)` ([`src/lib/search.ts`](src/lib/search.ts)) — `listDocuments`' GET form URL-embeds the queries, one 384-dim vector is ~3.5k chars, and Appwrite rejects such URIs with HTTP 414 before the API is reached.
+- **`$distance` semantics.** VectorsDB returns cosine *distance*; every consumer thinks in similarity via `similarity() = 1 − distance` ([`src/lib/constants.ts`](src/lib/constants.ts)). Metadata filters use dot-notation (`metadata.category`, `metadata.hidden`), but metadata is not orderable — so the feed sorts on the system field `$createdAt` ([`src/lib/feed.ts`](src/lib/feed.ts)) and the seed backdates it via timestamp overrides ([`scripts/seed.ts`](scripts/seed.ts)).
+
+## Why VectorsDB is the right database
+
+Four reasons, each anchored in shipped code rather than preference:
+
+1. **kNN is a query, not code.** Paraphrase-resistant scam matching is the product thesis, and VectorsDB makes it one `Query.vectorCosine` call against the collection's HNSW cosine index ([`src/lib/search.ts`](src/lib/search.ts)) — no self-hosted vector store, no custom backend, no cosine loop anywhere in the app. The committed 80-variant tuning set is the measured proof: `npm run tune` shows 71/80 reworded scams clear the `SUSPICIOUS` boundary (see [Thresholds](#thresholds)).
+2. **The corpus is the database.** The same `reports` collection serves check search, dedupe-merge ([`src/lib/reports.ts`](src/lib/reports.ts)), the public feed ([`src/lib/feed.ts`](src/lib/feed.ts)) and corpus stats ([`src/lib/stats.ts`](src/lib/stats.ts)) — one database for everything persistent, which is exactly the hackathon's single-database rule.
+3. **Schemaless metadata, used in-band.** Reports are free-form JSON payloads filtered with dotted string queries — `notEqual('metadata.hidden', 'true')` powers hide-own ([`src/lib/feed.ts`](src/lib/feed.ts), [`src/lib/stats.ts`](src/lib/stats.ts)), `equal('metadata.category', …)` powers the per-category stats counts. The one real constraint — metadata cannot be ordered — is designed around with `$createdAt` sorting plus seeded timestamp backdating, not fought.
+4. **Permissions are the security boundary.** Collection `read("any")` (public radar), `create("users")` (only signed-in users report), `update("users")` (the merge path) and per-document `delete("user:<uid>")` (only the author can remove their own report) are configured on the collection ([`scripts/setup-db.ts`](scripts/setup-db.ts)) — no server-side authorization code exists at all, because the database itself enforces the model.
+
+What we considered instead: keyword/regex blocklists are defeated by exactly the reworded variants this corpus exists to catch; Postgres + pgvector (or a separate vector service) would require a custom backend and break the one-database rule; and client-side brute-force cosine over all 360 × 384 floats would ship the whole corpus to every phone — bandwidth and latency that VectorsDB's HNSW does server-side in one query.
+
 ## Stack
 
 - **Vite + React 19** + TypeScript + Tailwind CSS v4
@@ -128,16 +170,35 @@ npm run corpus:check   # re-run the full acceptance contract + regeneration diff
 
 `corpus:check` verifies line counts, key sets, vocabularies, PII rules, variant indexing and the backdating window, and byte-compares every field against a fresh in-memory regeneration. Author new lines in `data/seeds/sources/handwritten.ts` (or extend a dataset pool) — quotas and category splits are asserted at build time.
 
+Per-source names and licenses: see [Dataset attribution](#dataset-attribution).
+
+Insertion into VectorsDB is operator-side: `npm run seed` (see [Database setup](#database-setup), step 3) — embedding the lines and backdating `$createdAt` both need the operator's API key, which laps never hold.
+
+## Dataset attribution
+
+Framing first, because two properties matter as much as the names:
+
+- All 360 lines are **modeled**, never verbatim upstream prose — no third-party text ships in the repo and no PII leaks from these datasets (rules asserted by `npm run corpus:check`).
+- Per-source counts below are **base lines only**: 280 base lines (180 dataset-modeled + 100 hand-written). The 80 reworded tuning variants are not counted in the rows — each variant inherits its parent's `source` ([`scripts/build-corpus.ts`](scripts/build-corpus.ts)), and they split 40/40 between dataset parents and hand-written parents. 280 + 80 = the committed 360.
+
 | Source | Modeled as | License |
 |---|---|---|
 | UCI SMS Spam Collection | 75 sms prize/lottery/quiz texts | CC BY 4.0 (UCI page) |
 | Apache SpamAssassin public corpus | 42 email phish/pump/419 texts, headers stripped | free for research (Apache SpamAssassin) |
 | `rokibulroni/Phishing-Email-Dataset` → `Nigerian_Fraud.csv` | 26 classic 419 letters | CC BY-SA 4.0 (repo readme) |
 | `rokibulroni/Phishing-Email-Dataset` → `Nazario.csv` | 16 verify-within-24h phish | CC BY-SA 4.0 |
-| `electricsheepafrica/africa-smishing-sms-phishing` (HF) | 21 Nigerian bank-app/BVN/promo SMS | repo license |
-| Hand-written Nigerian-context texts + variants | 100 + 80 originals | original |
+| [`electricsheepafrica/africa-smishing-sms-phishing`](https://huggingface.co/datasets/electricsheepafrica/africa-smishing-sms-phishing) (Hugging Face) | 21 Nigerian bank-app/BVN/promo SMS | repo license (Hugging Face) |
+| Hand-written Nigerian-context originals | 100 original texts | original |
 
-Insertion into VectorsDB is operator-side: `npm run seed` (see [Database setup](#database-setup), step 3) — embedding the lines and backdating `$createdAt` both need the operator's API key, which laps never hold.
+## Deploying (Vercel)
+
+The SPA deploys to Vercel's static hosting with zero configuration beyond the SPA rewrite the repo already ships ([`vercel.json`](vercel.json)). Runbook:
+
+1. **Check the SPA rewrite.** [`vercel.json`](vercel.json) carries exactly one catch-all rewrite — `{"source": "/(.*)", "destination": "/index.html"}` — so hard navigation and refreshes on `/browse`, `/report`, and the magic-link callback `/auth/callback` (all [`src/App.tsx`](src/App.tsx) routes) answer `index.html`. There is no serverless function; nothing else is required.
+2. **Import the repo in Vercel.** Framework preset **Vite**, build command `npm run build`, output directory `dist` — Vercel's Vite preset fills these in from `package.json`; confirm them.
+3. **Set the project env vars.** Only the public-by-design client values `VITE_APPWRITE_ENDPOINT` and `VITE_APPWRITE_PROJECT_ID` — the same keys as [`.env.example`](.env.example); they ship in the browser bundle by design. **Never add the Appwrite API key** — it exists only in the operator's gitignored `.env.local` and never belongs in any deployment.
+4. **Deploy.** Every push to the connected repo deploys, or from the command line: `npx vercel --prod`. When it answers, the deploy URL should render the check screen exactly as `npm start` serves the committed build.
+5. **Register the domain as an Appwrite Web platform (CORS).** Add the production domain in the Appwrite Console as a **Web platform** — the same step as the `http://localhost:5173` platform in [Appwrite bootstrap](#appwrite-bootstrap-one-time-console) — or every browser call fails CORS. Then verify the magic-link round-trip on the production domain: the login flow computes its redirect URL from `window.location.origin` ([`src/routes/login.tsx`](src/routes/login.tsx)), so the callback lands on the deployed origin and returns the user to the signed-in app.
 
 ## Thresholds
 
@@ -187,10 +248,16 @@ Levers already shipped for the score (issue #18):
 - **No blocking webfonts, no blocking images**: the page is system-font text; the only image is a ~500 B inline-icon SVG favicon.
 - **Text-only LCP**: the pre-hydration shell in [`index.html`](index.html) is plain HTML, so the largest contentful paint lands from markup alone, before any JS parses.
 
+## Limitations
+
+Stated as shipped — these are the tradeoffs the current build makes, not open bugs.
+
+- **~256-token truncation.** The on-device embedding model reads roughly the first ~256 tokens of a message; the paste box's 1,000-character cap ([`src/routes/home.tsx`](src/routes/home.tsx)) does not guarantee that everything fits, because verbose multi-word scripts tokenize long. Matches past the cut are invisible to the search — and the UI says so on the paste box itself ("Long input is capped at 1,000 characters; the embedding model reads roughly the first ~256 tokens").
+- **Any signed-in user can merge-increment (accepted tradeoff).** The collection-level `update` permission `update("users")` lets every signed-in user run the merge path's `updateDocument` on *any* report and bump its `report_count` ([`src/lib/reports.ts`](src/lib/reports.ts)) — that permission is what makes crowd-sourced dedupe possible without a backend, and Sybil inflation of counts is accepted, not mitigated (PRD §9: "Update needed so any signed-in user can merge-increment; accepted tradeoff"). Only deletes are doc-scoped — `delete("user:<uid>")` on each report — so no one can remove another user's report.
+- **No moderation beyond hide-own.** The only moderation surface is a reporter's own soft-hide (`metadata.hidden` = `"true"` via `hideReport()`, [`src/lib/reports.ts`](src/lib/reports.ts)); there is no admin panel, review queue, or takedown flow, and the PRD's scope explicitly excludes one.
+
+The standing honesty rule: "no prior reports" always means *unseen*, never *safe*.
+
 ## Plans
 
 The full product requirements document lives in [`.agents/PRDs/PRD.md`](.agents/PRDs/PRD.md) (architecture, data model, milestones, demo script).
-
----
-
-*More documentation (architecture deep-dive, "why VectorsDB", dataset attribution) lands here before submission.*
