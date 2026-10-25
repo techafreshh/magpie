@@ -1,15 +1,17 @@
 /**
- * Report create path (issue #8): the write half of the Magpie pipeline.
+ * Report write path (issues #8 + #9): the corpus half of the Magpie pipeline.
  *
  * `createReport(input)` embeds the pasted message on-device, runs the dedupe
- * lookup — top-1 of the same kNN `search()` the check flow uses — and, when
- * the best prior report is below `THRESHOLDS.MERGE`, stores a new VectorsDB
- * document carrying the vector plus the report metadata and a doc-level
- * delete permission for the reporter (so only the author can delete their own
- * report). A hit at or above MERGE means this scam is already on file: the
- * call aborts with outcome `duplicate` and creates nothing — folding the
- * report into the existing document (`report_count++`) is the merge path,
- * a separate issue.
+ * lookup — top-1 of the same kNN `search()` the check flow uses — and then
+ * takes one of two branches:
+ *
+ * - Below `THRESHOLDS.MERGE`: a new VectorsDB document is created, carrying
+ *   the vector plus the report metadata and a doc-level delete permission for
+ *   the reporter (so only the author can delete their own report).
+ * - At or above MERGE (issue #9): no new document. The existing top hit is
+ *   folded into itself — `mergeIntoExisting()` reads the full document,
+ *   increments `metadata.report_count` and patches it back, preserving every
+ *   other metadata field, the stored vector and the doc-level permissions.
  *
  * Errors propagate raw (Appwrite/SDK failures are rendered by the caller;
  * this module never swallows them). The optional `onStage` callback only
@@ -19,6 +21,7 @@
  * `CreateReportResult`, `CreateStage` types.
  */
 import { ID, Permission, Role } from 'appwrite';
+import type { Models } from 'appwrite';
 import { COLLECTION_ID, DATABASE_ID, getVectorsDB } from './appwrite';
 import { embed } from './embedder';
 import { search } from './search';
@@ -41,7 +44,38 @@ export type CreateStage = 'embedding' | 'searching' | 'saving';
 
 export type CreateReportResult =
   | { outcome: 'created'; documentId: string }
-  | { outcome: 'duplicate'; matched: SearchResult; similarity: number };
+  | { outcome: 'merged'; documentId: string; reportCount: number };
+
+/** Full stored document shape — `search()` hits drop fields the merge must preserve. */
+type StoredReportDoc = Models.Document & { metadata?: ReportMetadata };
+
+/**
+ * Fold a near-duplicate report into an existing corpus document (issue #9):
+ * read-modify-write of `metadata`, bumping only `report_count` by one. The
+ * read-first step is required — `updateDocument` is a field-level patch, so
+ * sending `metadata` replaces the whole object; recomposing it from the
+ * stored document keeps text/category/channel/region/first_seen/reporter_id/
+ * hidden (a plain `search()` hit is not enough: it drops `reporter_id` and
+ * `hidden`). Neither `embeddings` (the stored vector stays canonical) nor
+ * `permissions` (inherited by default) are passed to the patch. Errors
+ * propagate raw.
+ */
+async function mergeIntoExisting(hit: SearchResult): Promise<number> {
+  const vectors = getVectorsDB();
+  const doc = await vectors.getDocument<StoredReportDoc>({
+    databaseId: DATABASE_ID,
+    collectionId: COLLECTION_ID,
+    documentId: hit.id,
+  });
+  const nextCount = (doc.metadata?.report_count ?? 0) + 1;
+  await vectors.updateDocument<StoredReportDoc>({
+    databaseId: DATABASE_ID,
+    collectionId: COLLECTION_ID,
+    documentId: hit.id,
+    data: { metadata: { ...(doc.metadata ?? {}), report_count: nextCount } },
+  });
+  return nextCount;
+}
 
 export async function createReport(
   input: CreateReportInput,
@@ -51,11 +85,15 @@ export async function createReport(
   onStage?.('embedding');
   const vector = await embed(text);
   // Dedupe-before-write: top-1 of the kNN search (k=10 width, read as one
-  // nearest hit). ≥ MERGE means the same scam is already on file.
+  // nearest hit). ≥ MERGE means the same scam is already on file — merge
+  // into it (issue #9) instead of storing a near-duplicate document.
   onStage?.('searching');
   const [top] = await search(vector);
   if (top && top.similarity >= THRESHOLDS.MERGE) {
-    return { outcome: 'duplicate', matched: top, similarity: top.similarity };
+    // The existing 'saving' phase label covers the merge write too.
+    onStage?.('saving');
+    const reportCount = await mergeIntoExisting(top);
+    return { outcome: 'merged', documentId: top.id, reportCount };
   }
   const metadata: ReportMetadata = {
     text,
