@@ -142,6 +142,9 @@ export default function Home() {
         <Link to="/health" className="text-sky-400 underline-offset-4 hover:underline">
           Health check →
         </Link>
+        <Link to="/browse" className="text-sky-400 underline-offset-4 hover:underline">
+          Browse the feed →
+        </Link>
       </div>
     </main>
   );
