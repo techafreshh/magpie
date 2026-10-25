@@ -1,4 +1,4 @@
-import { Client, Query, VectorsDB } from 'appwrite';
+import { Account, Client, Query, VectorsDB } from 'appwrite';
 import type { Models } from 'appwrite';
 
 // Fixed repo vocabulary (PRD): one VectorsDB database `magpie` → collection `reports`.
@@ -24,16 +24,35 @@ export function readConfig(): { endpoint: string; projectId: string } | null {
 }
 
 /**
+ * Build a bare Appwrite client from the current env. Throws when the client
+ * env vars are missing — callers that need a non-throwing path should use
+ * `readConfig()` first (see `checkAppwrite`).
+ */
+function getClient(): Client {
+  const config = readConfig();
+  if (!config) {
+    throw new Error('VITE_APPWRITE_ENDPOINT / VITE_APPWRITE_PROJECT_ID are not set (see .env.example)');
+  }
+  return new Client().setEndpoint(config.endpoint).setProject(config.projectId);
+}
+
+/**
  * Build a VectorsDB service from the current env. Throws when the client env
  * vars are missing — callers that need a non-throwing path should use
  * `readConfig()` first (see `checkAppwrite`).
  */
 export function getVectorsDB(): VectorsDB {
-  const config = readConfig();
-  if (!config) {
-    throw new Error('VITE_APPWRITE_ENDPOINT / VITE_APPWRITE_PROJECT_ID are not set (see .env.example)');
-  }
-  return new VectorsDB(new Client().setEndpoint(config.endpoint).setProject(config.projectId));
+  return new VectorsDB(getClient());
+}
+
+/**
+ * Build the Account service — magic-link auth and session reads/writes for
+ * the auth header (`src/lib/useSession`, `src/components/header`). Throws
+ * when the client env vars are missing — callers that need a non-throwing
+ * path should use `readConfig()` first (see `checkAppwrite`).
+ */
+export function getAccount(): Account {
+  return new Account(getClient());
 }
 
 export async function checkAppwrite(): Promise<AppwriteHealth> {
