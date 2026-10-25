@@ -69,9 +69,10 @@ const REFRACTION_PRESETS: Record<GeneratedRefractionStrength, RefractionPreset> 
 /**
  * Scene blur under the rim, in CSS pixels. Chromium and Firefox sample the bend
  * nearest-neighbour, so the magnified rim would stair-step at 1x pixel density. The
- * map's blue channel keeps the blur off the flat centre.
+ * map's blue channel keeps the blur off the flat centre. Three quarters of a pixel:
+ * the softening must stay sub-perceptual while keeping rim stair-stepping off.
  */
-const RIM_BLUR = 0.8;
+const RIM_BLUR = 0.75;
 
 /**
  * The bend falls off as (1 - t)^2 across the edge band, steepest at the rim. Any pull
@@ -359,9 +360,9 @@ const LENS_PROFILE_STEPS = 512;
 
 // The rim and the flat top are the same frosted glass, but smoked glass lets more
 // light through its rim. Blue holds the share of the rim's light: all of it near
-// the edge, none past four fifths of the rim or a sixth of the surface, whichever
+// the edge, none past three quarters of the rim or a sixth of the surface, whichever
 // comes first, so small pieces keep the top's shade in the middle.
-const LENS_RIM_LIGHT = 0.8;
+const LENS_RIM_LIGHT = 0.75;
 
 const LENS_RIM_LIGHT_SURFACE = 0.16;
 

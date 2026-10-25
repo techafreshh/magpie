@@ -129,7 +129,7 @@ export const GlassButton = forwardRef<HTMLButtonElement, ButtonProps>(
             { opacity: 1, transform: 'scale(0.42)', offset: 0.16 },
             { opacity: 0, transform: 'scale(1)' },
           ],
-          { duration: 720, easing: 'cubic-bezier(0.22, 0.8, 0.3, 1)' },
+          { duration: 720, easing: 'cubic-bezier(0.22, 0.75, 0.3, 1)' },
         );
       },
       [reduceMotion],

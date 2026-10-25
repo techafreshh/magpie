@@ -37,6 +37,13 @@ export const CHANNELS = ['sms', 'whatsapp', 'email'] as const;
 
 export type Category = (typeof CATEGORIES)[number];
 export type Channel = (typeof CHANNELS)[number];
+
+/** Form defaults (report flow) — consumed by `src/routes/report.tsx`, so the
+ * last category/channel literals live here too (issue #20: every visible
+ * surface reads its vocabulary from this module). */
+export const DEFAULT_CATEGORY: Category = 'other';
+export const DEFAULT_CHANNEL: Channel = 'sms';
+
 /** Verdict tiers: ≥ 0.90 HIGH RISK · 0.65–0.89 SUSPICIOUS · below → no prior reports. */
 export type VerdictTier = 'HIGH_RISK' | 'SUSPICIOUS' | 'NO_REPORTS';
 
