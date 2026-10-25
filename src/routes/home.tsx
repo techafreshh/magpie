@@ -17,6 +17,10 @@ export default function Home() {
   const [text, setText] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [verdict, setVerdict] = useState<Verdict | null>(null);
+  // The exact text that produced the current verdict, captured at check time —
+  // the verdict card's report CTA must encode the checked message, not the
+  // box's possibly edited current value.
+  const [checkedText, setCheckedText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [lastLog, setLastLog] = useState<EmbedProgress | null>(null);
   // Monotonic token mirroring the embedder's request-id correlation: checked
@@ -40,6 +44,7 @@ export default function Home() {
   const busy = phase === 'embedding' || phase === 'searching';
 
   async function handleCheck() {
+    const submitted = text;
     const mySeq = ++seqRef.current;
     setError(null);
     setVerdict(null);
@@ -51,6 +56,7 @@ export default function Home() {
       const v = await runVerdict(vector);
       if (seqRef.current !== mySeq) return;
       setVerdict(v);
+      setCheckedText(submitted);
       setPhase('done');
     } catch (err) {
       if (seqRef.current !== mySeq) return;
@@ -126,7 +132,7 @@ export default function Home() {
       )}
 
       <div aria-live="polite">
-        {phase === 'done' && verdict && <VerdictCard verdict={verdict} />}
+        {phase === 'done' && verdict && <VerdictCard verdict={verdict} checkedText={checkedText} />}
       </div>
 
       <div className="flex gap-6">
