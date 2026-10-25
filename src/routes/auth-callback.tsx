@@ -38,7 +38,13 @@ export default function AuthCallback() {
     getAccount()
       .updateMagicURLSession({ userId, secret })
       .then(() => {
-        if (!cancelled) window.location.assign('/');
+        // Redirect regardless of `cancelled`: StrictMode's dev double-invoke
+        // (setup -> cleanup -> setup) cancels the only in-flight call while
+        // the fire-once guard blocks a re-fire, so gating the redirect on
+        // `cancelled` would strand a signed-in user on this page. Redirecting
+        // home is safe even post-unmount; only the error state write must
+        // respect `cancelled`.
+        window.location.assign('/');
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
