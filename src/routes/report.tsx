@@ -39,7 +39,6 @@ export default function Report() {
   const [channel, setChannel] = useState<Channel>('sms');
   const [region, setRegion] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
-  const [duplicatePercent, setDuplicatePercent] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const busy = phase !== 'idle';
@@ -55,7 +54,6 @@ export default function Report() {
     e.preventDefault();
     if (!user) return;
     setError(null);
-    setDuplicatePercent(null);
     setPhase('embedding');
     try {
       const result = await createReport(
@@ -66,8 +64,9 @@ export default function Report() {
         navigate('/report/success', { replace: true });
         return;
       }
-      setDuplicatePercent(Math.round(result.similarity * 100));
-      setPhase('idle');
+      // Merge (issue #9): the count travels as query params — state is lost on
+      // reload, and the toast must survive a direct GET of the final URL.
+      navigate(`/report/success?outcome=merged&count=${result.reportCount}`, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setPhase('idle');
@@ -218,16 +217,6 @@ export default function Report() {
           </div>
           <p className="mt-4 font-mono text-sm text-slate-400">{PHASE_LABEL[phase]}</p>
         </div>
-      )}
-
-      {duplicatePercent !== null && (
-        <p
-          role="alert"
-          data-testid="report-duplicate"
-          className="rounded-2xl border border-amber-800/60 bg-amber-950/40 p-4 font-mono text-sm text-amber-400"
-        >
-          {`This message is already on file (${duplicatePercent}% similar) — not added again.`}
-        </p>
       )}
 
       {error && (
