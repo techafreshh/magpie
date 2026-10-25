@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { embed } from '../lib/embedder';
 import { createReport } from '../lib/reports';
-import { CATEGORIES, CHANNELS } from '../lib/constants';
+import { CATEGORIES, CHANNELS, DEFAULT_CATEGORY, DEFAULT_CHANNEL } from '../lib/constants';
 import type { Category, Channel } from '../lib/constants';
 import { useSession } from '../lib/useSession';
 import { GlassButton } from '../components/glassyui/glass-button';
@@ -37,8 +37,8 @@ export default function Report() {
   const user = session.status === 'user' ? session.user : null;
   // Prefill from ?text= (check-CTA handoff), capped like any manual input.
   const [text, setText] = useState(() => (searchParams.get('text') ?? '').slice(0, MAX_CHARS));
-  const [category, setCategory] = useState<Category>('other');
-  const [channel, setChannel] = useState<Channel>('sms');
+  const [category, setCategory] = useState<Category>(DEFAULT_CATEGORY);
+  const [channel, setChannel] = useState<Channel>(DEFAULT_CHANNEL);
   const [region, setRegion] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);

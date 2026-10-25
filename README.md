@@ -198,7 +198,32 @@ The SPA deploys to Vercel's static hosting with zero configuration beyond the SP
 2. **Import the repo in Vercel.** Framework preset **Vite**, build command `npm run build`, output directory `dist` — Vercel's Vite preset fills these in from `package.json`; confirm them.
 3. **Set the project env vars.** Only the public-by-design client values `VITE_APPWRITE_ENDPOINT` and `VITE_APPWRITE_PROJECT_ID` — the same keys as [`.env.example`](.env.example); they ship in the browser bundle by design. **Never add the Appwrite API key** — it exists only in the operator's gitignored `.env.local` and never belongs in any deployment.
 4. **Deploy.** Every push to the connected repo deploys, or from the command line: `npx vercel --prod`. When it answers, the deploy URL should render the check screen exactly as `npm start` serves the committed build.
-5. **Register the domain as an Appwrite Web platform (CORS).** Add the production domain in the Appwrite Console as a **Web platform** — the same step as the `http://localhost:5173` platform in [Appwrite bootstrap](#appwrite-bootstrap-one-time-console) — or every browser call fails CORS. Then verify the magic-link round-trip on the production domain: the login flow computes its redirect URL from `window.location.origin` ([`src/routes/login.tsx`](src/routes/login.tsx)), so the callback lands on the deployed origin and returns the user to the signed-in app.
+5. **Register the domain as an Appwrite Web platform (CORS).** Add the production domain in the Appwrite Console as a **Web platform** — the same step as the `http://localhost:5173` platform in [Appwrite bootstrap](#appwrite-bootstrap-one-time-console) — or every browser call fails CORS. Then verify the magic-link round-trip on the production domain: the login flow computes its redirect URL as `${window.location.origin}/auth/callback` ([`src/routes/login.tsx`](src/routes/login.tsx)), so the deployed origin's `https://<your-domain>/auth/callback` must be reachable and registered as the magic-link redirect — the callback route turns the link's token into a session and returns the user to the signed-in app.
+
+Before recording the demo, run the end-to-end acceptance probe — `npm run smoke` proves the seeded corpus answers the check flow the way the deployed app will: [Smoke check](#smoke-check).
+
+## Smoke check
+
+One command, two phases, and the operator's checklist before recording the demo — `scripts/smoke.ts` probes the **live, seeded project** exactly the way the acceptance contract pins it (issue #20):
+
+```bash
+npm run smoke                 # operator run: needs .env.local (APPWRITE_ENDPOINT / APPWRITE_PROJECT_ID / APPWRITE_API_KEY) and a seeded project
+npm run smoke -- --local      # offline gate: no key, no network — the slice laps and CI can run
+```
+
+What it checks, in order — every line prints its **measured value and the bar it cleared**, and the script exits 0 only when all run probes pass (final line `SMOKE OK`, or `SMOKE LOCAL OK` for `--local`):
+
+1. **Seed present** (offline + online): the committed corpus (`data/seeds/corpus.jsonl`, 360 lines, 80 `variant_of` pairs) loads and validates; online, the corpus must hold ≥ **300** non-hidden documents — the feed-total probe runs `listDocuments` with `Query.notEqual('metadata.hidden','true')` **verbatim from [`src/lib/feed.ts`](src/lib/feed.ts)** and reads the server's `total` (the [`src/lib/stats.ts`](src/lib/stats.ts) count idiom).
+2. **kNN sane for 3 texts** (online, one POST `createQuery` per text, k=10 — the app's own transport, see below):
+   - **Known scam** (corpus line 1) → retrieves its **own** seed document (deterministic ID `seed-<sha256[:20]>`, [`scripts/seed.ts`](scripts/seed.ts)) with similarity ≥ `THRESHOLDS.HIGH` (**0.90**);
+   - **Paraphrased variant** → the strongest `variant_of` pair the corpus itself certifies (chosen offline by argmax over all 80 pairs, ties to the lowest line index) retrieves its **source** document in the top-10 with similarity ≥ **0.80** (the issue-pinned retrieval bar, distinct from any `THRESHOLDS` value);
+   - **Benign control** → a plain everyday message's top-1 similarity stays **< `THRESHOLDS.SUSPICIOUS` (0.65)** — the guard against false verdicts.
+3. **Thresholds recorded**: the run header echoes `THRESHOLDS` — `HIGH=0.90 · SUSPICIOUS=0.65 · MERGE=0.95` — read live from [`src/lib/constants.ts`](src/lib/constants.ts), never restated inside the script, so the probe always measures against the currently tuned boundaries.
+4. **Deploy runbook enumerated**: with smoke green, the recording checklist is exactly the five numbered steps of [Deploying (Vercel)](#deploying-vercel) — ① SPA rewrite present, ② repo import, ③ `VITE_APPWRITE_ENDPOINT` / `VITE_APPWRITE_PROJECT_ID` env vars, ④ deploy, ⑤ Appwrite Web-platform registration + magic-link redirect `https://<your-domain>/auth/callback`.
+
+Transport note (mirrors [`src/lib/search.ts`](src/lib/search.ts)): the three vector probes ride the **POST** route `vectors.createQuery` — `listDocuments` fetches GET with queries URL-embedded, and one 384-dim `vectorCosine` query is ~3.5k chars, which Appwrite rejects with HTTP 414 before the API is reached. The vector-free feed-total probe rides GET `listDocuments` — the same split the app itself makes (`search.ts` POST, `feed.ts`/`stats.ts` GET).
+
+Latest recorded local gate (no key needed): **strongest pair corpus line 316 → 266, local cosine 0.9078 ≥ 0.80, probe texts embedded, `SMOKE LOCAL OK`** — followed by the online probes on the operator's seeded project.
 
 ## Thresholds
 
