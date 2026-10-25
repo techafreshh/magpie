@@ -8,6 +8,7 @@
     "start": "node server.mjs",
     "setup:db": "tsx scripts/setup-db.ts",
     "seed": "tsx scripts/seed.ts",
+    "tune": "tsx scripts/tune.ts",
     "corpus:build": "tsx scripts/build-corpus.ts build",
     "corpus:check": "tsx scripts/build-corpus.ts check",
     "build": "tsc -b && vite build",
