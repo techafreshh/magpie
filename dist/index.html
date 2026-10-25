@@ -4,12 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Magpie</title>
-    <script type="module" crossorigin src="/assets/index-BcNiJDe_.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BNayigyr.css">
+    <script type="module" crossorigin src="/assets/index-SBl5zyiL.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BuFVfptC.css">
   </head>
   <body>
     <!-- Pre-hydration shell: raw GETs see these contract strings; createRoot() replaces this markup on mount. -->
     <div id="root">
+      <!-- Anonymous auth header: raw GETs (no JS) always see the anonymous state here; createRoot() replaces this block with the session-aware header on mount. -->
+      <header>
+        <span>Magpie</span>
+        <a href="/login" data-testid="sign-in">Sign in</a>
+      </header>
       <main>
         <h1>Magpie</h1>
         <p>Paste a suspicious message — it gets embedded in your browser and matched against the crowd-sourced corpus of reported scams.</p>
