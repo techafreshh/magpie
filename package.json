@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host --port ${PORT:-5173} --strictPort",
+    "start": "npm run dev",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host --port ${PORT:-4173} --strictPort"
   },
