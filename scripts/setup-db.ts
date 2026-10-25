@@ -26,6 +26,12 @@ const DIMENSION = 384;
 const METRIC = 'cosine';
 /** Arbitrary readable index ID; VectorsDB does not require it to equal the attribute name. */
 const VECTOR_INDEX_KEY = 'embeddings_hnsw';
+/**
+ * Report metadata per the PRD data model, stored on each document as free-form
+ * JSON (VectorsDB collections are schemaless — there is nothing to provision
+ * here; listed so the expected document shape is visible in one place).
+ */
+const DOC_FIELDS = ['text', 'category', 'channel', 'region', 'first_seen', 'reporter_id', 'hidden', 'report_count'] as const;
 
 function isNotFound(err: unknown): boolean {
   return err instanceof AppwriteException && err.code === 404;
@@ -159,6 +165,7 @@ async function main(): Promise<void> {
     `Collection "${COLLECTION_ID}" — ${colStatus}` +
       (colStatus === 'created' ? ` (dimension ${DIMENSION}, doc-level permissions on)` : ''),
   );
+  console.log(`  document fields (PRD data model, free-form JSON): ${DOC_FIELDS.join(', ')}`);
 
   const idxStatus = await ensureVectorIndex(vectors);
   console.log(
