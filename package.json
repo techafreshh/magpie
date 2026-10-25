@@ -10,6 +10,7 @@
     "preview": "vite preview --host --port ${PORT:-4173} --strictPort"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "appwrite": "29.1.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
