@@ -4,6 +4,8 @@ import type { Models } from 'appwrite';
 // Fixed repo vocabulary (PRD): one VectorsDB database `magpie` → collection `reports`.
 export const DATABASE_ID = 'magpie';
 export const COLLECTION_ID = 'reports';
+/** Vector field for kNN; mirrors scripts/setup-db.ts (that script must not import browser modules). */
+export const VECTOR_FIELD = 'embeddings';
 
 export interface AppwriteHealth {
   /** Env vars present? */
@@ -21,6 +23,19 @@ export function readConfig(): { endpoint: string; projectId: string } | null {
   return { endpoint, projectId };
 }
 
+/**
+ * Build a VectorsDB service from the current env. Throws when the client env
+ * vars are missing — callers that need a non-throwing path should use
+ * `readConfig()` first (see `checkAppwrite`).
+ */
+export function getVectorsDB(): VectorsDB {
+  const config = readConfig();
+  if (!config) {
+    throw new Error('VITE_APPWRITE_ENDPOINT / VITE_APPWRITE_PROJECT_ID are not set (see .env.example)');
+  }
+  return new VectorsDB(new Client().setEndpoint(config.endpoint).setProject(config.projectId));
+}
+
 export async function checkAppwrite(): Promise<AppwriteHealth> {
   const config = readConfig();
   if (!config) {
@@ -32,8 +47,7 @@ export async function checkAppwrite(): Promise<AppwriteHealth> {
   }
 
   try {
-    const client = new Client().setEndpoint(config.endpoint).setProject(config.projectId);
-    const vectors = new VectorsDB(client);
+    const vectors = getVectorsDB();
     const list: Models.DocumentList<Models.DefaultDocument> = await vectors.listDocuments({
       databaseId: DATABASE_ID,
       collectionId: COLLECTION_ID,
