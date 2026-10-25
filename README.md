@@ -29,7 +29,14 @@ npm install
 npm run dev
 ```
 
-The SPA serves at `http://localhost:5173` (or `$PORT` when set). `/` shows the **Magpie** home page with a live Appwrite connectivity panel; `/health` renders a JSON health panel with `{"status":"ok","appwrite":"reachable"|"unreachable"}` based on a real `listDocuments` call against VectorsDB. A production build is available via `npm run build`.
+The SPA serves at `http://localhost:5173` (or `$PORT` when set). `/` shows the **Magpie** home page with a live Appwrite connectivity panel; `/health` renders a JSON health panel with `{"status":"ok","appwrite":"reachable"|"unreachable"}` based on a real `listDocuments` call against VectorsDB.
+
+Two ways to serve:
+
+- `npm run dev` — the Vite dev server (`npm install` first).
+- `npm start` — `node server.mjs`, a zero-dependency static server for the committed production build (`dist/`). Answers instantly on a fresh clone with no registry round-trip, which is what CI-style checks use; identical routes and SPA catch-all behavior through the same `index.html`.
+
+A production build is available via `npm run build`.
 
 ## Environment
 
