@@ -5,6 +5,8 @@ import Check from './routes/check';
 import Login from './routes/login';
 import AuthCallback from './routes/auth-callback';
 import { Header } from './components/header';
+import Report from './routes/report';
+import ReportSuccess from './routes/report-success';
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
         <Route path="/check" element={<Check />} />
         <Route path="/login" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/report" element={<Report />} />
+        <Route path="/report/success" element={<ReportSuccess />} />
       </Routes>
     </>
   );
