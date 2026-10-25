@@ -12,13 +12,17 @@
  *   folded into itself — `mergeIntoExisting()` reads the full document,
  *   increments `metadata.report_count` and patches it back, preserving every
  *   other metadata field, the stored vector and the doc-level permissions.
+ * - On demand (issue #13): the reporter hides their own submission —
+ *   `hideReport()` is the same read-modify-write of `metadata`, setting
+ *   `hidden` to the string `'true'` (the exact shape the feed's server-side
+ *   `notEqual` excludes), again preserving vector and permissions.
  *
  * Errors propagate raw (Appwrite/SDK failures are rendered by the caller;
  * this module never swallows them). The optional `onStage` callback only
  * reports pipeline progress for UI loading lines and never changes behavior.
  *
- * Public surface: `createReport()` plus the `CreateReportInput`,
- * `CreateReportResult`, `CreateStage` types.
+ * Public surface: `createReport()`, `hideReport()` plus the
+ * `CreateReportInput`, `CreateReportResult`, `CreateStage` types.
  */
 import { ID, Permission, Role } from 'appwrite';
 import type { Models } from 'appwrite';
@@ -46,8 +50,15 @@ export type CreateReportResult =
   | { outcome: 'created'; documentId: string }
   | { outcome: 'merged'; documentId: string; reportCount: number };
 
-/** Full stored document shape — `search()` hits drop fields the merge must preserve. */
-type StoredReportDoc = Models.Document & { metadata?: ReportMetadata };
+/**
+ * Full stored document shape — `search()` hits drop fields the merge must
+ * preserve. `hidden` is widened to `boolean | string` (the `FeedMetadata`
+ * widening in `./feed.ts`): creation stores the boolean `false` while the
+ * hide patch (issue #13) writes the string `'true'`, so both shapes must be
+ * readable back here before the recompose recomposes them.
+ */
+type HideMetadata = Omit<ReportMetadata, 'hidden'> & { hidden?: boolean | string };
+type StoredReportDoc = Models.Document & { metadata?: HideMetadata };
 
 /**
  * Fold a near-duplicate report into an existing corpus document (issue #9):
@@ -75,6 +86,33 @@ async function mergeIntoExisting(hit: SearchResult): Promise<number> {
     data: { metadata: { ...(doc.metadata ?? {}), report_count: nextCount } },
   });
   return nextCount;
+}
+
+/**
+ * Soft-hide one of the reporter's own documents (issue #13): the app's only
+ * moderation. Same full-doc read-modify-write of `metadata` that
+ * `mergeIntoExisting` proves — `getDocument` first, recompose the whole
+ * object, patch just `metadata` — setting `hidden` to the string `'true'`.
+ * String, not boolean: the feed's server-side `notEqual('metadata.hidden',
+ * 'true')` and client filter exclude exactly that shape, and the issue's
+ * acceptance pins `metadata.hidden === "true"` on the raw document. No
+ * `embeddings` (the stored vector stays canonical) and no `permissions` (the
+ * doc-level `delete:user:<uid>` survives the patch). Errors propagate raw —
+ * the calling row stays visible with its error line.
+ */
+export async function hideReport(documentId: string): Promise<void> {
+  const vectors = getVectorsDB();
+  const doc = await vectors.getDocument<StoredReportDoc>({
+    databaseId: DATABASE_ID,
+    collectionId: COLLECTION_ID,
+    documentId,
+  });
+  await vectors.updateDocument<StoredReportDoc>({
+    databaseId: DATABASE_ID,
+    collectionId: COLLECTION_ID,
+    documentId,
+    data: { metadata: { ...(doc.metadata ?? {}), hidden: 'true' } },
+  });
 }
 
 export async function createReport(
