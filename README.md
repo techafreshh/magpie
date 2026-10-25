@@ -88,6 +88,41 @@ npm run setup:db
 
 Output shows `created` for every resource the first run makes and `exists` when it is already provisioned; the permission wire strings (`read("any")`, `create("users")`, `update("users")`) and the document-level `delete("user:<uid>")` template are printed at the end for reference.
 
+## Seed corpus
+
+The scam corpus the app matches against ships as committed seed data: [`data/seeds/corpus.jsonl`](data/seeds/corpus.jsonl) — **360 anonymized scam texts** (180 dataset-modeled + 100 hand-written Nigerian-context originals + 80 reworded tuning variants). One JSON document per line:
+
+```json
+{"text": "GTBANK ALERT: ...", "category": "phishing", "channel": "sms", "region": "Lagos", "first_seen": "2026-08-01T00:00:00.000Z", "report_count": 3, "source": "hand-written Nigerian-context seed (original, no PII)"}
+```
+
+- `category` ∈ `phishing | investment | advance_fee | delivery | romance | job_offer | other` and `channel` ∈ `sms | whatsapp | email` — the same vocabularies as [`src/lib/constants.ts`](src/lib/constants.ts).
+- `first_seen` is a full ISO-8601 UTC timestamp, 32–220 days old at build time (the final drop into VectorsDB is operator-side, so seed ages track the "first reported …" UI correctly).
+- `report_count` is 1–90 and concentrated: 25 flagged "popular" scams carry 25–90, the rest skew low (1–14) — the merge/dedupe flow (`#9`) increments counts from there.
+- Variant lines carry one extra key, `"variant_of": <line index>` (0-based, pointing back at the base line they paraphrase). They exist as the paraphrase set for threshold tuning; 80 lines qualify, ≥ 60 required.
+- Privacy: no real addresses (all mails are `…@example.com`), phone numbers only as masked patterns (`+234xxxxxxxxxx`, `0803xxxxxxx`), no quoted headers, each text ≤ 990 chars.
+- All texts are **modeled** on the public sources below — no verbatim upstream excerpts are copied, so the committed corpus carries no third-party prose and no PII leak from those datasets. `source` names the dataset each line is modeled on.
+
+Rebuild or validate it with two scripts (`scripts/build-corpus.ts`, deterministic — same UTC day, same output):
+
+```bash
+npm run corpus:build   # assemble the sources into data/seeds/corpus.jsonl
+npm run corpus:check   # re-run the full acceptance contract + regeneration diff
+```
+
+`corpus:check` verifies line counts, key sets, vocabularies, PII rules, variant indexing and the backdating window, and byte-compares every field against a fresh in-memory regeneration. Author new lines in `data/seeds/sources/handwritten.ts` (or extend a dataset pool) — quotas and category splits are asserted at build time.
+
+| Source | Modeled as | License |
+|---|---|---|
+| UCI SMS Spam Collection | 75 sms prize/lottery/quiz texts | CC BY 4.0 (UCI page) |
+| Apache SpamAssassin public corpus | 42 email phish/pump/419 texts, headers stripped | free for research (Apache SpamAssassin) |
+| `rokibulroni/Phishing-Email-Dataset` → `Nigerian_Fraud.csv` | 26 classic 419 letters | CC BY-SA 4.0 (repo readme) |
+| `rokibulroni/Phishing-Email-Dataset` → `Nazario.csv` | 16 verify-within-24h phish | CC BY-SA 4.0 |
+| `electricsheepafrica/africa-smishing-sms-phishing` (HF) | 21 Nigerian bank-app/BVN/promo SMS | repo license |
+| Hand-written Nigerian-context texts + variants | 100 + 80 originals | original |
+
+Insertion into VectorsDB is a separate, operator-side step (embedding + backdated `$createdAt` needs an API key — laps never hold one); the seed inserter is a later deliverable.
+
 ## Plans
 
 The full product requirements document lives in [`.agents/PRDs/PRD.md`](.agents/PRDs/PRD.md) (architecture, data model, milestones, demo script).
