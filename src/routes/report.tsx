@@ -77,7 +77,7 @@ export default function Report() {
 
   if (status === 'checking') {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
+      <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
         <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
         <GlassPanel data-testid="report-session-checking" role="status" aria-busy="true">
           <GlassSkeleton className="h-4 w-1/3" variant="block" />
@@ -90,7 +90,7 @@ export default function Report() {
 
   if (status === 'anonymous') {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
+      <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
         <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
         <GlassPanel data-testid="report-signin-required">
           <h2 className="text-2xl font-semibold text-slate-200">Sign in required</h2>
@@ -101,7 +101,7 @@ export default function Report() {
           <Link
             to="/login"
             data-testid="report-signin-link"
-            className="mt-4 inline-block w-fit rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500"
+            className="mt-4 inline-flex min-h-[44px] items-center w-fit rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500"
           >
             Sign in with a magic link
           </Link>
@@ -111,7 +111,7 @@ export default function Report() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
+    <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
       <header>
         <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
         <p className="mt-3 text-slate-400">
@@ -138,7 +138,7 @@ export default function Report() {
           maxLength={MAX_CHARS}
           rows={5}
           placeholder="Paste the scam message…"
-          className="mt-3 w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-4 font-mono text-sm text-slate-200 placeholder:text-slate-600"
+          className="mt-3 min-h-[44px] w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-4 font-mono text-base text-slate-200 placeholder:text-slate-600"
         />
         <p className="mt-3 text-xs text-slate-500">
           Capped at 1,000 characters. Your text never leaves this device — only an anonymous vector
@@ -155,7 +155,7 @@ export default function Report() {
               data-testid="report-category"
               value={category}
               onChange={(e) => setCategory(e.target.value as Category)}
-              className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-200"
+              className="mt-2 min-h-[44px] w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-base text-slate-200"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -173,7 +173,7 @@ export default function Report() {
               data-testid="report-channel"
               value={channel}
               onChange={(e) => setChannel(e.target.value as Channel)}
-              className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-200"
+              className="mt-2 min-h-[44px] w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-base text-slate-200"
             >
               {CHANNELS.map((ch) => (
                 <option key={ch} value={ch}>
@@ -195,6 +195,7 @@ export default function Report() {
             value={region}
             onChange={(e) => setRegion(e.target.value)}
             placeholder="e.g. Lagos — or leave blank"
+            className="min-h-[44px]"
           />
           <datalist id="region-suggestions">
             {REGION_SUGGESTIONS.map((r) => (
@@ -203,7 +204,7 @@ export default function Report() {
           </datalist>
         </div>
 
-          <GlassButton type="submit" lens={false} data-testid="report-submit" disabled={busy || !text.trim()} className="mt-4">
+          <GlassButton type="submit" lens={false} data-testid="report-submit" disabled={busy || !text.trim()} className="mt-4 min-h-[44px] min-w-[44px]">
             Submit report
           </GlassButton>
         </GlassPanel>

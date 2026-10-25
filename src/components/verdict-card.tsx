@@ -148,7 +148,7 @@ export function VerdictCard({
         <Link
           to={`/report?text=${encodeURIComponent(checkedText)}`}
           data-testid="report-cta"
-          className="mt-4 inline-block w-fit rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500"
+          className="mt-4 inline-flex min-h-[44px] items-center w-fit rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500"
         >
           Report this message
         </Link>

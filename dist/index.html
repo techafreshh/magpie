@@ -3,9 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Mobile shell (issue #18): dark browser-chrome tint matching the page background
+         (#0b0f14, same as body in src/index.css) and an explicit dark color-scheme so
+         form controls and scrollbars render dark before hydration. -->
+    <meta name="theme-color" content="#0b0f14" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Magpie — paste a suspicious message and check it against a crowd-sourced corpus of reported scams, entirely on your device."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Magpie</title>
-    <script type="module" crossorigin src="/assets/index-DTaqXgkz.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-Bh0FVjHA.css">
+    <script type="module" crossorigin src="/assets/index-CACT-kiB.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DElrBloG.css">
   </head>
   <body>
     <!-- Pre-hydration shell: raw GETs see these contract strings; createRoot() replaces this markup on mount. -->

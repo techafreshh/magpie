@@ -67,7 +67,7 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
+    <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
       <header>
         <h1 className="text-5xl font-bold tracking-tight">Magpie</h1>
         <p className="mt-3 text-slate-400">
@@ -94,7 +94,7 @@ export default function Home() {
           maxLength={MAX_CHARS}
           rows={5}
           placeholder="Paste a suspicious message…"
-          className="mt-3 w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-4 font-mono text-sm text-slate-200 placeholder:text-slate-600"
+          className="mt-3 min-h-[44px] w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-4 font-mono text-base text-slate-200 placeholder:text-slate-600"
         />
         <p className="mt-3 text-xs text-slate-500">
           Long input is capped at 1,000 characters; the embedding model reads roughly the first
@@ -107,7 +107,7 @@ export default function Home() {
           data-testid="check-button"
           disabled={busy || !text.trim()}
           onClick={handleCheck}
-          className="mt-4 w-fit"
+          className="mt-4 min-h-[44px] min-w-[44px] w-fit"
         >
           Check
         </GlassButton>

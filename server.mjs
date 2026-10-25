@@ -6,6 +6,7 @@
 // Vite dev-server path.
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
+import { gzipSync } from 'node:zlib';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,6 +32,31 @@ const MIME = {
 function notFound(res) {
   res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
   res.end('not found');
+}
+
+// Gzip (issue #18): the bundle ships ~500KB of text assets (JS + CSS); over a
+// slow mobile connection that is most of the Lighthouse budget. Compress the
+// text-like assets when the client offers gzip — identity bytes stay
+// byte-identical for clients that do not. `.wasm` is deliberately excluded
+// (already compressed, decompressing it on every request wastes CPU).
+const COMPRESSIBLE = new Set(['.css', '.html', '.js', '.json', '.mjs', '.svg', '.txt']);
+const GZIP_MIN_BYTES = 860; // below one MTU-ish payload, compression gains nothing
+// Built dist/ files never change under a running server, so a small bounded
+// memo of encoded buffers keeps repeat requests at memcpy cost. Oldest-insert
+// eviction beyond GZIP_CACHE_MAX entries.
+const GZIP_CACHE_MAX = 64;
+const gzipCache = new Map();
+
+function gzipped(file, body) {
+  let encoded = gzipCache.get(file);
+  if (!encoded) {
+    encoded = gzipSync(body, { level: 6 });
+    if (gzipCache.size >= GZIP_CACHE_MAX) {
+      gzipCache.delete(gzipCache.keys().next().value);
+    }
+    gzipCache.set(file, encoded);
+  }
+  return encoded;
 }
 
 async function handle(req, res) {
@@ -65,12 +91,28 @@ async function handle(req, res) {
   }
 
   const body = await readFile(file);
-  res.writeHead(200, {
+  const headers = {
     'content-type': MIME[extname(file).toLowerCase()] ?? 'application/octet-stream',
-    'content-length': body.length,
     // index.html is the routing answer, never cache it; hashed assets are immutable.
     'cache-control': file === INDEX ? 'no-store' : 'public, max-age=31536000, immutable',
-  });
+  };
+  const acceptsGzip = /gzip/i.test(String(req.headers['accept-encoding'] ?? ''));
+  if (
+    acceptsGzip &&
+    body.length >= GZIP_MIN_BYTES &&
+    COMPRESSIBLE.has(extname(file).toLowerCase())
+  ) {
+    const encoded = gzipped(file, body);
+    headers['content-encoding'] = 'gzip';
+    // Vary so shared caches never serve gzip bytes to an identity-only client.
+    headers.vary = 'Accept-Encoding';
+    headers['content-length'] = encoded.length;
+    res.writeHead(200, headers);
+    res.end(req.method === 'HEAD' ? undefined : encoded);
+    return;
+  }
+  headers['content-length'] = body.length;
+  res.writeHead(200, headers);
   res.end(req.method === 'HEAD' ? undefined : body);
 }
 

@@ -145,7 +145,7 @@ export function FeedItem({
             onClick={() => {
               void handleHide();
             }}
-            className="rounded-xl border border-slate-700 px-3 py-1 text-xs font-medium text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+            className="min-h-[44px] min-w-[44px] rounded-xl border border-slate-700 px-3 py-1 text-xs font-medium text-slate-300 hover:bg-slate-800 disabled:opacity-50"
           >
             {hiding ? 'Hiding…' : 'Hide'}
           </button>

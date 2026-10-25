@@ -51,6 +51,7 @@ export function ThemeToggle() {
       data-testid="theme-toggle"
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
       onClick={toggle}
+      className="min-h-[44px] min-w-[44px]"
     >
       {dark ? '☾' : '☀'}
     </GlassButton>
@@ -73,22 +74,28 @@ export function Header() {
 
   return (
     <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-6 py-4">
+      <div className="mx-auto flex w-full max-w-[40rem] items-center justify-between gap-4 px-6 py-4">
         <Link to="/" className="text-lg font-bold tracking-tight text-slate-100">
           Magpie
         </Link>
-        <div className="flex items-center gap-4">
+        {/* flex-wrap keeps a 360px viewport inside the no-horizontal-scroll
+            contract (issue #18): a row that cannot fit grows downward, never
+            sideways; the email truncates so the row normally stays single-line. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <ThemeToggle />
           {session.status === 'user' ? (
             <>
-              <span data-testid="header-user" className="text-sm text-slate-300">
+              <span
+                data-testid="header-user"
+                className="min-w-0 max-w-[7rem] truncate text-sm text-slate-300"
+              >
                 {session.user.email || 'signed in'}
               </span>
               <button
                 type="button"
                 data-testid="sign-out"
                 onClick={handleSignOut}
-                className="rounded-xl border border-slate-700 px-4 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
+                className="min-h-[44px] min-w-[44px] rounded-xl border border-slate-700 px-4 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
               >
                 Sign out
               </button>
@@ -98,7 +105,7 @@ export function Header() {
             <Link
               to="/login"
               data-testid="sign-in"
-              className="text-sm text-sky-400 underline-offset-4 hover:underline"
+              className="inline-flex min-h-[44px] items-center text-sm text-sky-400 underline-offset-4 hover:underline"
             >
               Sign in
             </Link>
