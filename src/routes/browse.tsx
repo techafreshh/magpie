@@ -13,7 +13,10 @@
  *
  * States: skeleton (loading), amber mono error (propagated raw), a short
  * empty line when the corpus (page) has no visible reports, otherwise the
- * numbered feed with Prev/Next.
+ * numbered feed with Prev/Next. Above the feed sits the issue-#12 stats
+ * strip (`StatsStrip` over `getCorpusStats()`, fetched once per mount with
+ * its own `cancelled` guard) — independent of the feed fetch, so a stats
+ * failure degrades to its own amber line without ever blanking the feed.
  *
  * Public surface: default `Browse`.
  */
@@ -21,6 +24,9 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { FEED_PAGE_SIZE, listRecentReports } from '../lib/feed';
 import type { FeedItemData } from '../lib/feed';
+import { getCorpusStats } from '../lib/stats';
+import type { CorpusStats } from '../lib/stats';
+import { StatsStrip } from '../components/stats-strip';
 import { FeedItem } from '../components/feed-item';
 
 const GLASS_PANEL = 'rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg backdrop-blur';
@@ -39,6 +45,10 @@ export default function Browse() {
   const page = parsePage(searchParams.get('page'));
   const [items, setItems] = useState<FeedItemData[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Stats-strip state, fetched independently of the feed: a stats failure
+  // renders its own amber line and must never blank the feed (issue #12).
+  const [stats, setStats] = useState<CorpusStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   // Fetch on every page change. `items === null` is the loading state — set
   // synchronously so a mid-pagination render never shows the previous page's
@@ -58,6 +68,23 @@ export default function Browse() {
       cancelled = true;
     };
   }, [page]);
+
+  // Corpus stats fetch once per mount — no polling (issue #12 out of scope).
+  // Same `cancelled` guard as the feed effect, so StrictMode's double mount
+  // and slow first responses can never land stale counts.
+  useEffect(() => {
+    let cancelled = false;
+    getCorpusStats()
+      .then((result) => {
+        if (!cancelled) setStats(result);
+      })
+      .catch((err) => {
+        if (!cancelled) setStatsError(err instanceof Error ? err.message : String(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // A page change (button click or back/forward) restarts the read from the top.
   useEffect(() => {
@@ -79,6 +106,8 @@ export default function Browse() {
           excluded. Paste any of these into the check screen to see how the radar scores it.
         </p>
       </header>
+
+      <StatsStrip stats={stats} error={statsError} />
 
       {error && (
         <p role="alert" data-testid="browse-error" className="font-mono text-sm text-amber-400">
