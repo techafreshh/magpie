@@ -115,7 +115,7 @@ The scam corpus the app matches against ships as committed seed data: [`data/see
 - `category` ∈ `phishing | investment | advance_fee | delivery | romance | job_offer | other` and `channel` ∈ `sms | whatsapp | email` — the same vocabularies as [`src/lib/constants.ts`](src/lib/constants.ts).
 - `first_seen` is a full ISO-8601 UTC timestamp, 32–220 days old at build time (the final drop into VectorsDB is operator-side, so seed ages track the "first reported …" UI correctly).
 - `report_count` is 1–90 and concentrated: 25 flagged "popular" scams carry 25–90, the rest skew low (1–14) — the merge/dedupe flow (`#9`) increments counts from there.
-- Variant lines carry one extra key, `"variant_of": <line index>` (0-based, pointing back at the base line they paraphrase). They exist as the paraphrase set for threshold tuning; 80 lines qualify, ≥ 60 required.
+- Variant lines carry one extra key, `"variant_of": <line index>` (0-based, pointing back at the base line they paraphrase). They exist as the paraphrase set for threshold tuning; 80 lines qualify, ≥ 60 required — validated with `npm run tune`, see [Thresholds](#thresholds).
 - Privacy: no real addresses (all mails are `…@example.com`), phone numbers only as masked patterns (`+234xxxxxxxxxx`, `0803xxxxxxx`), no quoted headers, each text ≤ 990 chars.
 - All texts are **modeled** on the public sources below — no verbatim upstream excerpts are copied, so the committed corpus carries no third-party prose and no PII leak from those datasets. `source` names the dataset each line is modeled on.
 
@@ -138,6 +138,31 @@ npm run corpus:check   # re-run the full acceptance contract + regeneration diff
 | Hand-written Nigerian-context texts + variants | 100 + 80 originals | original |
 
 Insertion into VectorsDB is operator-side: `npm run seed` (see [Database setup](#database-setup), step 3) — embedding the lines and backdating `$createdAt` both need the operator's API key, which laps never hold.
+
+## Thresholds
+
+The check flow's verdict boundaries are three constants in [`src/lib/constants.ts`](src/lib/constants.ts) (`THRESHOLDS`) — and they live nowhere else, so a tuning pass never touches a call site:
+
+| Threshold | Value | What gates on it |
+|---|---|---|
+| `HIGH` | 0.90 | Verdict tier **HIGH RISK** (similarity ≥ 0.90) — a near-verbatim copy of a reported scam |
+| `SUSPICIOUS` | 0.65 | Verdict tier **SUSPICIOUS** (0.65–0.89) — the "reworded scam still caught" floor; below it the check card shows the no-prior-reports panel |
+| `MERGE` | 0.95 | Dedupe-before-write in the report flow ([`src/lib/reports.ts`](src/lib/reports.ts)): a new report ≥ 0.95 similar to an existing one **merges** into it (report count +1) instead of creating a near-duplicate document |
+
+They are tuned against the corpus's held-out reworded variants (issue #16): `npm run tune` embeds all 80 `variant_of` pairs with the same on-device model the browser uses and scores each variant against its source.
+
+Final state after the tuning run:
+
+- **`SUSPICIOUS` 0.80 → 0.65.** Measured variant sims span 0.30–0.91 (median 0.79, p05–p95 = 0.47–0.88) — wider than the PRD's 0.75–0.88 risk estimate — while unrelated-text pairs measure far lower (median ~0.13 in a 240-pair corpus sample; same-category, different-narrative pairs reach only ~0.40). At the original 0.80, only 34/80 (42.5%) of true rewordings score above the boundary. The tuner's mechanical p20 rule — the boundary that keeps at least 80% of pairs, floored to a 0.05 step — measured p20 = 0.69 and suggested **0.65**, still 0.25 above the same-category different-narrative ceiling; at 0.65, 71/80 (**88.75%**) clear it, meeting the issue's ≥ 80% bar with the boundary far from the noise. `HIGH` and `MERGE` stay put: only 2/80 variants reach 0.90 (near-verbatim copies only) and none reach the 0.95 merge band, which is exactly what those tiers mean.
+- **Below the boundary by measurement, not massage.** The 9 variants under 0.65 are the corpus's loosest rewrites — mostly pidgin-heavy romance/419 continuations that share the *scenario* with their source but almost none of the wording. Chasing them would push `SUSPICIOUS` toward the unrelated-text noise floor, so the boundary stays at the p20-suggested 0.65 and the tuner's distribution line reports that tail instead.
+
+Re-run the measurement any time — it needs **no Appwrite key and no database** (it computes cosines locally), and its first run downloads the quantized model (~23 MB) into the gitignored `.cache/` just like the browser does on first use:
+
+```bash
+npm run tune
+```
+
+Each variant prints one line — `variant <0-based line index>: sim=<score> tier=<HIGH_RISK\|SUSPICIOUS\|NO_REPORTS>` — followed by a summary line (pass rate against `SUSPICIOUS`), the similarity distribution, the size of the merge band, and a data-driven `suggest:` verdict on the thresholds.
 
 ## Plans
 

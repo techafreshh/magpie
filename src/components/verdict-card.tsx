@@ -6,7 +6,8 @@
  * region chips, report count, and a 0–100% similarity bar per match. For
  * `NO_REPORTS` only the exact no-prior-reports copy renders — listing
  * sub-threshold neighbours under "no prior reports" would contradict the
- * wording (PRD §7.1 puts that panel below 0.80 similarity), so the match list
+ * wording (it gates on the SUSPICIOUS threshold, retuned to 0.65 in issue #16
+ * — the value lives in `THRESHOLDS`, never duplicated here), so the match list
  * is hidden in that tier — plus the "Report this message" CTA linking to
  * `/report?text=<urlencoded checked text>` (issue #10) so a no-match check
  * feeds the corpus; the report page applies the session gate itself.
