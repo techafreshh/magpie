@@ -6,6 +6,10 @@ import { createReport } from '../lib/reports';
 import { CATEGORIES, CHANNELS } from '../lib/constants';
 import type { Category, Channel } from '../lib/constants';
 import { useSession } from '../lib/useSession';
+import { GlassButton } from '../components/glassyui/glass-button';
+import { GlassInput } from '../components/glassyui/glass-input';
+import { GlassPanel } from '../components/glassyui/glass-panel';
+import { GlassSkeleton } from '../components/glassyui/glass-skeleton';
 
 /** Hard CAP on the paste box — same cap as the check page (home idiom). */
 const MAX_CHARS = 1000;
@@ -21,8 +25,6 @@ const PHASE_LABEL: Record<Phase, string> = {
   searching: 'searching the corpus…',
   saving: 'saving report…',
 };
-
-const GLASS_PANEL = 'rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg backdrop-blur';
 
 export default function Report() {
   const [searchParams] = useSearchParams();
@@ -77,9 +79,11 @@ export default function Report() {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
         <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
-        <p data-testid="report-session-checking" className="font-mono text-sm text-slate-400">
-          Checking session…
-        </p>
+        <GlassPanel data-testid="report-session-checking" role="status" aria-busy="true">
+          <GlassSkeleton className="h-4 w-1/3" variant="block" />
+          <GlassSkeleton className="mt-3 w-full" variant="text" lines={2} />
+          <p className="mt-4 font-mono text-sm text-slate-400">Checking session…</p>
+        </GlassPanel>
       </main>
     );
   }
@@ -88,7 +92,7 @@ export default function Report() {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-16">
         <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
-        <section data-testid="report-signin-required" className={GLASS_PANEL}>
+        <GlassPanel data-testid="report-signin-required">
           <h2 className="text-2xl font-semibold text-slate-200">Sign in required</h2>
           <p className="mt-3 text-slate-400">
             Reports carry their author&apos;s id so the corpus stays accountable — sign in first,
@@ -101,7 +105,7 @@ export default function Report() {
           >
             Sign in with a magic link
           </Link>
-        </section>
+        </GlassPanel>
       </main>
     );
   }
@@ -116,8 +120,9 @@ export default function Report() {
         </p>
       </header>
 
-      <form onSubmit={handleSubmit} className={GLASS_PANEL}>
-        <div className="flex items-baseline justify-between gap-4">
+      <form onSubmit={handleSubmit}>
+        <GlassPanel>
+          <div className="flex items-baseline justify-between gap-4">
           <label htmlFor="report-input" className="block text-sm font-medium text-slate-300">
             Message received
           </label>
@@ -180,17 +185,16 @@ export default function Report() {
         </div>
 
         <div className="mt-4">
-          <label htmlFor="report-region" className="block text-sm font-medium text-slate-300">
-            Region <span className="font-normal text-slate-500">(optional)</span>
-          </label>
-          <input
+          {/* GlassyUI input (issue #17): renders its own optional label; the
+              free-text datalist and verbatim value stay as before. */}
+          <GlassInput
             id="report-region"
             data-testid="report-region"
+            label="Region (optional)"
             list="region-suggestions"
             value={region}
             onChange={(e) => setRegion(e.target.value)}
             placeholder="e.g. Lagos — or leave blank"
-            className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-200 placeholder:text-slate-600"
           />
           <datalist id="region-suggestions">
             {REGION_SUGGESTIONS.map((r) => (
@@ -199,24 +203,18 @@ export default function Report() {
           </datalist>
         </div>
 
-        <button
-          type="submit"
-          data-testid="report-submit"
-          disabled={busy || !text.trim()}
-          className="mt-4 w-fit rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500 disabled:opacity-50"
-        >
-          Submit report
-        </button>
+          <GlassButton type="submit" lens={false} data-testid="report-submit" disabled={busy || !text.trim()} className="mt-4">
+            Submit report
+          </GlassButton>
+        </GlassPanel>
       </form>
 
       {busy && (
-        <div data-testid="report-loading" role="status" className={GLASS_PANEL}>
-          <div className="animate-pulse space-y-3">
-            <div className="h-4 w-1/3 rounded bg-slate-800" />
-            <div className="h-2 w-full rounded-full bg-slate-800/80" />
-          </div>
+        <GlassPanel data-testid="report-loading" role="status" aria-busy="true">
+          <GlassSkeleton className="h-4 w-1/3" variant="block" />
+          <GlassSkeleton className="mt-3 w-full" variant="text" lines={3} />
           <p className="mt-4 font-mono text-sm text-slate-400">{PHASE_LABEL[phase]}</p>
-        </div>
+        </GlassPanel>
       )}
 
       {error && (
