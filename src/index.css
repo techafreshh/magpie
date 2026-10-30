@@ -1,17 +1,112 @@
+@import "@fontsource-variable/space-grotesk";
 @import "tailwindcss";
 
-/* Dark-first palette: the app is a dark glass UI; keep the pre-hydration shell
-   consistent. Background matches the theme-color meta (#0b0f14, issue #18) so
-   the browser chrome tints the same color as the page. */
+/* Design-token layer (issue #41): the full shadcn variable set, defined once
+   here and consumed by component libraries (beUI, shadcn) and every surface.
+   `static` forces every token into the emitted `:root` even while unused —
+   the light block below must be able to override tokens that no component
+   consumes yet, so tree-shaking them out of the build is not an option.
+
+   Dark glass palette, dark-first: the body backdrop stays #0b0f14 (matches
+   the theme-color meta, issue #18) and cards read as glass over it. The
+   accent pair is iridescent — teal → violet, used together by the
+   `*-iridescent` gradient utilities below. Category color knobs embed the
+   literal `CATEGORIES` keys from src/lib/constants.ts, so chips/charts/maps
+   (later issues) pick colors up as `var(--color-category-${category})`; hex
+   literals live here and nowhere else. */
+@theme static {
+  /* shadcn surface set */
+  --color-background: #0b0f14;
+  --color-foreground: #e2e8f0;
+  --color-card: #131a24;
+  --color-card-foreground: #e2e8f0;
+  --color-border: #1e293b;
+  --color-input: #1e293b;
+  --color-muted: #16202c;
+  --color-muted-foreground: #94a3b8;
+  --color-primary: #2dd4bf;
+  --color-primary-foreground: #0b0f14;
+  --color-secondary: #a78bfa;
+  --color-secondary-foreground: #0b0f14;
+  --color-accent: #1b2735;
+  --color-accent-foreground: #e2e8f0;
+  --color-destructive: #f87171;
+  --color-destructive-foreground: #0b0f14;
+  --color-ring: #2dd4bf;
+
+  /* shadcn radius scale (canonical calc mapping; unconsumed this issue) */
+  --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Display face (self-hosted via @fontsource-variable/space-grotesk above):
+     brand + headings only — body text stays on the system stack. Wiring the
+      utility into the header is a later issue. */
+  --font-display: "Space Grotesk Variable", "Space Grotesk", ui-sans-serif,
+    system-ui, sans-serif;
+
+  /* Fixed category palette — keys mirror src/lib/constants.ts CATEGORIES. */
+  --color-category-phishing: #f87171;
+  --color-category-investment: #fbbf24;
+  --color-category-advance_fee: #fb923c;
+  --color-category-delivery: #38bdf8;
+  --color-category-romance: #f472b6;
+  --color-category-job_offer: #4ade80;
+  --color-category-other: #94a3b8;
+}
+
+/* Iridescent accent pair as gradient utilities (issue #41): teal → violet,
+   reading the tokens above so a later palette pass retunes both. */
+@utility text-iridescent {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility bg-iridescent {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
+}
+
+/* Dark-first palette: the app is a dark glass UI; keep the pre-hydration
+   shell consistent. Colors now read from the token layer (issue #41) — the
+   values above keep the backdrop identical to the previous raw #0b0f14 so
+   the theme-color meta (#0b0f14, issue #18) still matches the page. */
 body {
-  background-color: #0b0f14;
-  color: #e2e8f0;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
 }
 
 /* Light state (issue #17): the GlassyUI provider mirrors the theme onto <html>
-   as data-lg-theme; swap the page backdrop and ink. The pre-hydration shell
-   stays dark — dark is the default and the header toggle decides otherwise. */
-html[data-lg-theme='light'] body {
-  background-color: #f1f5f9;
-  color: #0f172a;
+   as data-lg-theme; redefine the tokens (not just the body rule) so every
+   consumer — utilities, beUI components — flips together. The pre-hydration
+   shell stays dark — dark is the default and the header toggle decides
+   otherwise. The attribute selector (0-1-1) outranks `:root` (0-1-0). */
+html[data-lg-theme='light'] {
+  --color-background: #f1f5f9;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-muted: #eef2f7;
+  --color-muted-foreground: #64748b;
+  --color-primary: #14b8a6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #8b5cf6;
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #e2e8f0;
+  --color-accent-foreground: #0f172a;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  --color-ring: #14b8a6;
 }

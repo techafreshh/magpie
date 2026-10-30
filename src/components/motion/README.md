@@ -1,0 +1,49 @@
+# src/components/motion — beUI vendored components (issue #41)
+
+Installed via the shadcn CLI against the `@beui` registry
+(`https://beui.dev/r/{name}.json`, pinned CLI: `shadcn@4.14.1`):
+
+```
+npx -y shadcn@4.14.1 add --yes \
+  @beui/shader-background @beui/dock @beui/tilt-card @beui/text-scramble \
+  @beui/animated-number @beui/animated-badge @beui/loader @beui/donut-chart \
+  @beui/theme-toggle @beui/animated-toast-stack @beui/select @beui/alert \
+  @beui/swipeable-list @beui/drawer @beui/not-found-magnetic
+```
+
+## Issue name → registry slug mapping
+
+The issue names beUI items by their site page name; four differ from the
+registry slug. The vendored files carry the slug names so later issues can
+consult beui.dev docs (and future CLI updates) by slug:
+
+| Issue name       | Registry slug         | Evidence                                                     |
+| ---------------- | --------------------- | ------------------------------------------------------------ |
+| text-animation   | `text-scramble`       | page "Text Animation"; vendored header reads `…/motion/text-animation` |
+| number           | `animated-number`     | vendored header reads `…/motion/number`; brings `digit-swap.tsx` |
+| animated-alert   | `alert`               | registry title is "Animated Alert"                           |
+| not-found        | `not-found-magnetic`  | variant chosen because the alternatives (glitch/spotlight/terminal) ship decorative hex literals the zero-hex gate forbids |
+
+Transitive files the CLI pulled in as dependencies of the above:
+`action-swap.tsx` (animated-toast-stack), `digit-swap.tsx` (animated-number),
+`magnetic.tsx` + `not-found/` (not-found-magnetic), plus the shared libs
+`src/lib/utils.ts` (`cn`), `src/lib/ease.ts`, `src/lib/presence-gate.tsx`,
+`src/lib/touch.ts`, `src/lib/hooks/*`.
+
+## Relocation
+
+`donut-chart.tsx` + `donut-chart/` target `src/components/charts/` upstream,
+but the issue mandates installation into `src/components/motion/` — both were
+moved here after install; all internal imports are relative, so no code edits.
+
+## Vendored edits (hex-literal removals)
+
+The zero-hex gate (`src/**/*.ts(x)` must contain no `#[0-9a-fA-F]{3,8}`) required
+two upstream deviations, both color-identical or comment-only:
+
+1. `theme-toggle.tsx` — mask gradient stop `#000 0` → `black 0` (same color,
+   CSS keyword).
+2. `donut-chart/model.ts` — doc comment reworded to drop the example hex
+   `#2563eb`.
+
+No other vendored file needed touching; everything else is CLI output as-is.
