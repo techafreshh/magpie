@@ -1,11 +1,11 @@
 /**
  * One /browse feed row (issue #11): text snippet (first 120 chars), category
  * / channel / region chips, report count, and a relative age for the
- * document's `$createdAt` — plus, since issue #13, a Hide button on rows the
- * current session user authored (`metadata.reporter_id` match). Hide is the
- * app's only moderation: a `window.confirm` guard, then the parent's
- * `onHide` (soft-hide via `./lib/reports.ts`) runs; a failure renders inline
- * as `feed-hide-error` and leaves the row untouched.
+ * report's `createdAt` — plus, since issue #13, a Hide button on rows the
+ * current browser authored (`reporterId` match against the device-local id).
+ * Hide is the app's only moderation: a `window.confirm` guard, then the
+ * parent's `onHide` (soft-hide via `./lib/reports.ts`) runs; a failure
+ * renders inline as `feed-hide-error` and leaves the row untouched.
  *
  * All user-sourced content — snippet, chip labels, count — renders through
  * `{expr}` text children only; React escapes `<`, `>` and `&`, so a seeded
@@ -74,11 +74,11 @@ function pluralAgo(n: number, unit: string): string {
 
 export function FeedItem({
   item,
-  currentUserId,
+  currentReporterId,
   onHide,
 }: {
   item: FeedItemData;
-  currentUserId?: string;
+  currentReporterId?: string;
   onHide?: (id: string) => Promise<void>;
 }) {
   const snippetText = snippet(item.text);
@@ -136,7 +136,7 @@ export function FeedItem({
             {formatRelative(item.createdAt)}
           </span>
         )}
-        {currentUserId && onHide && item.reporterId === currentUserId && (
+        {currentReporterId && onHide && item.reporterId === currentReporterId && (
           <button
             type="button"
             data-testid="feed-hide"

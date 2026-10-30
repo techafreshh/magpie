@@ -1,5 +1,14 @@
 # PRD — Magpie (community scam-message radar)
 
+> **⚠ Superseded (2026-10-30):** the product has migrated off Appwrite. The
+> vector database is now a self-hosted **Qdrant** instance (collection
+> `magpie_reports`) behind a thin own backend (`server.mjs`), reporting is
+> anonymous (device-local reporter id, no magic-link auth), and the app is
+> self-hosted on the VPS at `https://magpie.techa.pro` instead of Vercel.
+> Everything below describes the original Appwrite-era design and is kept as
+> build history. **The README is the source of truth for the shipped
+> architecture.**
+
 **Status:** Approved for build · **Owner:** solo hacker · **Last updated:** 2026-10-24
 **Target event:** Appwrite Databases Hackathon (hackathon.appwrite.io) — submissions close **Oct 31, 2026, 11:59 PM PT** (= **Nov 1, 7:59 AM WAT**). Build window Oct 19–31; all code written from Oct 24 onward.
 

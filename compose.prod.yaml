@@ -1,0 +1,15 @@
+# Production override — attach the web container to the shared gateway so the
+# Caddy edge can route magpie.techa.pro → magpie:8080. No host ports at all:
+# Caddy reaches it over web_gateway, and operator access from the host goes
+# through the container's web_gateway IP (see README → "Deploying").
+services:
+  web:
+    container_name: magpie-web
+    networks:
+      default: {}
+      web_gateway:
+        aliases: ["magpie"]
+
+networks:
+  web_gateway:
+    external: true

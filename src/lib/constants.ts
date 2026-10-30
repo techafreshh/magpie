@@ -13,8 +13,13 @@
  * reach 0.90 and none reach the 0.95 merge band). Final values and the
  * measured evidence: README → "Thresholds".
  *
+ * The backend (server.mjs) mirrors MERGE in its dedupe-before-write path and
+ * hardcodes the same CATEGORIES/CHANNELS lists — this plain-TS module cannot
+ * be imported by the zero-dependency JS server, so those copies must stay in
+ * sync by hand (grep for "must mirror" in server.mjs).
+ *
  * Public surface: `THRESHOLDS`, `CATEGORIES`, `CHANNELS`, the derived
- * `Category`/`Channel`/`VerdictTier` unions, `similarity()`, `verdictTier()`.
+ * `Category`/`Channel`/`VerdictTier` unions, `verdictTier()`.
  */
 
 /** Similarity cutoffs — validated by `npm run tune` (issue #16) over the
@@ -46,11 +51,6 @@ export const DEFAULT_CHANNEL: Channel = 'sms';
 
 /** Verdict tiers: ≥ 0.90 HIGH RISK · 0.65–0.89 SUSPICIOUS · below → no prior reports. */
 export type VerdictTier = 'HIGH_RISK' | 'SUSPICIOUS' | 'NO_REPORTS';
-
-/** VectorsDB returns cosine *distance*; every consumer thinks in similarity. */
-export function similarity(distance: number): number {
-  return 1 - distance;
-}
 
 /** Map a similarity score to its verdict tier (inclusive lower bounds). */
 export function verdictTier(similarity: number): VerdictTier {

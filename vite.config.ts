@@ -15,4 +15,12 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
+  // Dev same-origin API: the browser code always fetches `/api/*`; in dev the
+  // Vite server forwards them to `npm run api` (server.mjs on :8787). Point
+  // MAGPIE_API_URL elsewhere if the backend runs on another port.
+  server: {
+    proxy: {
+      '/api': process.env.MAGPIE_API_URL ?? 'http://127.0.0.1:8787',
+    },
+  },
 });

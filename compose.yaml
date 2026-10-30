@@ -1,0 +1,22 @@
+# Portable base — runnable anywhere, no host publishes (hosting-guide Pattern A).
+# Production (join web_gateway, Caddy fronts it) comes via compose.prod.yaml.
+name: magpie
+
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    environment:
+      # The shared Qdrant instance on the web_gateway network (container alias).
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-magpie_reports}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      MERGE_THRESHOLD: ${MERGE_THRESHOLD:-}
+    expose:
+      - "8080" # documentation only; no host publish
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

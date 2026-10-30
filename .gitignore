@@ -32,8 +32,8 @@ Thumbs.db
 # local scratch
 /tmp
 *.local
-# seed-run checkpoint (per-operator record of which corpus lines are already in VectorsDB)
-.seed-checkpoint.json
+# operator env overrides (QDRANT_URL / QDRANT_API_KEY) — never commit
+.env.local
 
 # factory harness session logs (ephemeral, not product work)
 .pdf-sessions/

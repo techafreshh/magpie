@@ -1,5 +1,5 @@
 // Seed-corpus assembler + acceptance validator (issue #14) — runs with tsx,
-// no network, no Appwrite contact (`npm run corpus:build` / `npm run corpus:check`).
+// no network, no database contact (`npm run corpus:build` / `npm run corpus:check`).
 // `build` assembles data/seeds/sources/*.ts into data/seeds/corpus.jsonl with
 // seeded-synthetic timestamps, regions and report_counts (deterministic within
 // a UTC day). `check` regenerates the corpus in memory, byte-compares every

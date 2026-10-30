@@ -5,7 +5,7 @@ import { embed } from '../lib/embedder';
 import { createReport } from '../lib/reports';
 import { CATEGORIES, CHANNELS, DEFAULT_CATEGORY, DEFAULT_CHANNEL } from '../lib/constants';
 import type { Category, Channel } from '../lib/constants';
-import { useSession } from '../lib/useSession';
+import { useReporterId } from '../lib/reporter';
 import { GlassButton } from '../components/glassyui/glass-button';
 import { GlassInput } from '../components/glassyui/glass-input';
 import { GlassPanel } from '../components/glassyui/glass-panel';
@@ -29,12 +29,9 @@ const PHASE_LABEL: Record<Phase, string> = {
 export default function Report() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  // Shared tri-state auth gate: `checking` never flashes the form on, any
-  // failure (missing env, 401, CORS) degrades to `anonymous` — the sign-in
-  // panel, never a raw error.
-  const session = useSession();
-  const status = session.status;
-  const user = session.status === 'user' ? session.user : null;
+  // Anonymous reporting: the device-local reporter id stamps ownership (it is
+  // what later allows hide-own on /browse — no account involved).
+  const reporterId = useReporterId();
   // Prefill from ?text= (check-CTA handoff), capped like any manual input.
   const [text, setText] = useState(() => (searchParams.get('text') ?? '').slice(0, MAX_CHARS));
   const [category, setCategory] = useState<Category>(DEFAULT_CATEGORY);
@@ -45,21 +42,19 @@ export default function Report() {
 
   const busy = phase !== 'idle';
 
-  // Prewarm the model once the user is known (one discarded forward pass): the
-  // ~23 MB download must not land inside the first Submit click. Home idiom.
+  // Prewarm the model on mount (one discarded forward pass): the ~23 MB
+  // download must not land inside the first Submit click. Home idiom.
   useEffect(() => {
-    if (status !== 'user') return;
     void embed('warmup').catch(() => undefined);
-  }, [status]);
+  }, []);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!user) return;
     setError(null);
     setPhase('embedding');
     try {
       const result = await createReport(
-        { text, category, channel, region, reporterId: user.$id },
+        { text, category, channel, region, reporterId },
         (stage) => setPhase(stage),
       );
       if (result.outcome === 'created') {
@@ -75,48 +70,13 @@ export default function Report() {
     }
   }
 
-  if (status === 'checking') {
-    return (
-      <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
-        <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
-        <GlassPanel data-testid="report-session-checking" role="status" aria-busy="true">
-          <GlassSkeleton className="h-4 w-1/3" variant="block" />
-          <GlassSkeleton className="mt-3 w-full" variant="text" lines={2} />
-          <p className="mt-4 font-mono text-sm text-slate-400">Checking session…</p>
-        </GlassPanel>
-      </main>
-    );
-  }
-
-  if (status === 'anonymous') {
-    return (
-      <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
-        <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
-        <GlassPanel data-testid="report-signin-required">
-          <h2 className="text-2xl font-semibold text-slate-200">Sign in required</h2>
-          <p className="mt-3 text-slate-400">
-            Reports carry their author&apos;s id so the corpus stays accountable — sign in first,
-            then paste the scam message. No password: a one-time magic link is enough.
-          </p>
-          <Link
-            to="/login"
-            data-testid="report-signin-link"
-            className="mt-4 inline-flex min-h-[44px] items-center w-fit rounded-xl bg-sky-600 px-5 py-2.5 font-medium text-white hover:bg-sky-500"
-          >
-            Sign in with a magic link
-          </Link>
-        </GlassPanel>
-      </main>
-    );
-  }
-
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
       <header>
         <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
         <p className="mt-3 text-slate-400">
           Paste the suspicious message — it is embedded on this device, checked against the corpus
-          for duplicates and, if new, added for everyone&apos;s next check.
+          for duplicates and, if new, added for everyone&apos;s next check. No account needed.
         </p>
       </header>
 

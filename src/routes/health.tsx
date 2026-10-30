@@ -1,9 +1,31 @@
+/**
+ * /health — a JSON health panel over `GET /api/health` (the backend's own
+ * verdict about the Qdrant collection). `getHealth()` never throws, so the
+ * page always renders a payload; unreachable shows as `"qdrant":"unreachable"`
+ * with the backend's detail line.
+ */
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { useAppwriteHealth } from '../lib/useAppwriteHealth';
+import { getHealth } from '../lib/api';
+import type { HealthPayload } from '../lib/api';
 
 export default function Health() {
-  const health = useAppwriteHealth();
-  const payload = { status: 'ok', appwrite: health.ok ? 'reachable' : 'unreachable' } as const;
+  const [health, setHealth] = useState<HealthPayload | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getHealth().then((result) => {
+      if (!cancelled) setHealth(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const payload = {
+    status: 'ok',
+    qdrant: health?.qdrant === 'reachable' ? 'reachable' : 'unreachable',
+  } as const;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
@@ -17,11 +39,11 @@ export default function Health() {
       </pre>
 
       <p className="text-sm text-slate-400">
-        {health.detail}
-        {!health.configured && (
+        {health?.detail ??
+          (health === null ? 'checking…' : 'the vector database answered — the radar is live.')}
+        {health?.qdrant === 'unreachable' && (
           <span className="block mt-2 text-amber-400">
-            Appwrite is not configured for this deployment — see <code>.env.example</code> and the
-            README bootstrap steps.
+            Qdrant is not reachable from the backend — see the README&apos;s database setup steps.
           </span>
         )}
       </p>

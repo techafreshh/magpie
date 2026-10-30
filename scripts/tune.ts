@@ -2,11 +2,10 @@
 // Reads data/seeds/corpus.jsonl, embeds every `variant_of` pair with the SAME
 // transformers.js pipeline the browser and `scripts/seed.ts` use, and scores
 // each reworded variant against its source with a local cosine. Key-free and
-// fully offline by design: no .env.local, no dotenv, no Appwrite contact —
-// for unit vectors Appwrite cosine distance is 1 − cos, so this dot product
-// equals what `Query.vectorCosine` + `similarity()` (src/lib/search.ts) would
-// report on the live service, while laps/CI (which never hold the API key)
-// can still run the tuner. Pass semantics are pair-based on purpose: the
+// fully offline by design: no .env.local, no dotenv, no backend contact —
+// for unit vectors this dot product equals exactly the similarity the
+// backend's Qdrant Cosine score reports on the live service, so laps/CI can
+// still run the tuner. Pass semantics are pair-based on purpose: the
 // acceptance bar (issue #16) is "≥ 80% of variants score ≥ 0.80 against their
 // source", and a pair score is a lower bound on any corpus-wide top-1, so a
 // passing pair is also caught by the live check flow a fortiori.
@@ -196,8 +195,8 @@ async function embedOne(text: string): Promise<number[]> {
 /**
  * Cosine similarity with explicit norms: dot(a,b) / (‖a‖·‖b‖). Vectors are
  * L2-normalized by the pipeline, but re-deriving the norms keeps the value
- * exactly `1 − Appwrite cosine distance` regardless of fp noise (see
- * `similarity()` in src/lib/constants.ts).
+ * exactly the cosine similarity the backend's Qdrant score reports,
+ * regardless of fp noise.
  */
 function cosineSim(a: readonly number[], b: readonly number[]): number {
   let dot = 0;

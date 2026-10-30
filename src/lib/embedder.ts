@@ -7,11 +7,12 @@
  * traffic (tokenizer + ONNX weights) is downloaded by the worker via transformers.js's own
  * HTTP layer — this module performs zero networking.
  *
- * One-file fallback swap (documented, deliberately NOT wired): to move embeddings to
- * Appwrite VectorsDB's `createTextEmbeddings`, replace the body of `embed()` below with a
- * call into the Appwrite client and delete `workers/embed.worker.ts`. Do it in this single
- * file only and never mix embedding sources for vectors stored in the same corpus —
- * vectors from different models are not comparable and would silently corrupt kNN.
+ * One-file fallback swap (documented, deliberately NOT wired): to move embeddings
+ * server-side (e.g. a containerized embedding service), replace the body of
+ * `embed()` below and delete `workers/embed.worker.ts`. Do it in this single
+ * file only and never mix embedding sources for vectors stored in the same
+ * corpus — vectors from different models are not comparable and would silently
+ * corrupt kNN.
  *
  * Public surface: `embed()`, `getEmbedLog()`, `onEmbedLog()` plus the worker message types.
  */
