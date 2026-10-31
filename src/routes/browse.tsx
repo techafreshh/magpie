@@ -42,6 +42,7 @@ import { FeedItem } from '../components/feed-item';
 import { GlassButton } from '../components/glassyui/glass-button';
 import { GlassPanel } from '../components/glassyui/glass-panel';
 import { GlassSkeleton } from '../components/glassyui/glass-skeleton';
+import { Loader } from '../components/motion/loader';
 
 /** Parse the 1-based `?page=` value; non-numeric, fractional or < 1 falls back to page 1. */
 function parsePage(raw: string | null): number {
@@ -140,7 +141,10 @@ export default function Browse() {
         <GlassPanel data-testid="browse-loading" role="status" aria-busy="true">
           <GlassSkeleton className="h-4 w-1/3" variant="block" />
           <GlassSkeleton className="mt-3 w-full" variant="text" lines={3} />
-          <p className="mt-4 font-mono text-sm text-slate-400">loading the feed…</p>
+          <div className="mt-4 flex items-center gap-3">
+            <Loader variant="spinner" size={24} label="loading the feed…" />
+            <p className="font-mono text-sm text-slate-400">loading the feed…</p>
+          </div>
         </GlassPanel>
       )}
 
@@ -171,7 +175,7 @@ export default function Browse() {
               data-testid="feed-prev"
               disabled={page <= 1}
               onClick={() => goto(page - 1)}
-              className="min-h-[44px] min-w-[44px]"
+              className="min-h-[44px] min-w-[44px] rounded-full bg-iridescent"
             >
               Prev
             </GlassButton>
@@ -184,7 +188,7 @@ export default function Browse() {
               data-testid="feed-next"
               disabled={!hasNext}
               onClick={() => goto(page + 1)}
-              className="min-h-[44px] min-w-[44px]"
+              className="min-h-[44px] min-w-[44px] rounded-full bg-iridescent"
             >
               Next
             </GlassButton>
