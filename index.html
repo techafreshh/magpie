@@ -14,6 +14,22 @@
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Magpie</title>
+    <!-- Pre-paint theme (issue #42): apply the persisted GlassyUI choice before
+         first paint — same key/attribute as src/components/glassyui/lib/preferences.ts
+         (`glassy-ui-preferences` → `data-lg-theme` + `dark` class), so a persisted
+         light choice paints light instead of flashing dark. Malformed storage
+         falls back to the dark default. -->
+    <script>
+      try {
+        var stored = window.localStorage.getItem('glassy-ui-preferences');
+        var parsed = stored ? JSON.parse(stored) : null;
+        var theme = parsed && parsed.theme;
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.setAttribute('data-lg-theme', theme);
+          document.documentElement.classList.toggle('dark', theme === 'dark');
+        }
+      } catch (_) {}
+    </script>
   </head>
   <body>
     <!-- Pre-hydration shell: raw GETs see these contract strings; createRoot() replaces this markup on mount. -->
@@ -21,6 +37,14 @@
       <!-- Pre-hydration header: raw GETs (no JS) see the brand bar; createRoot() replaces this block with the app header on mount. -->
       <header>
         <span>Magpie</span>
+        <nav aria-label="Primary" data-testid="nav-dock">
+          <a href="/">Check</a>
+          <a href="/map">Map</a>
+          <a href="/browse">Browse</a>
+          <a href="/report">Report</a>
+          <a href="/health">Health</a>
+        </nav>
+        <button type="button" data-testid="theme-toggle" aria-label="Switch to light mode" disabled>☾</button>
       </header>
       <main>
         <h1>Magpie</h1>
@@ -32,6 +56,13 @@
         <button type="button" disabled>Check</button>
         <pre>{"status":"ok","qdrant":"unreachable"}</pre>
       </main>
+      <!-- Route contracts: server.mjs serves this one document for every path
+           (SPA catch-all), so the raw-GET route strings live in this inert
+           template; React renders the real surfaces on hydration. -->
+      <template id="route-contracts">
+        <section data-testid="map-stub"><p>The vector constellation arrives in #48.</p></section>
+        <section data-testid="not-found"><h1>Page not found</h1><p>The page you are looking for moved, vanished, or never existed.</p><a href="/">Back to the check</a></section>
+      </template>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { embed, getEmbedLog, onEmbedLog } from '../lib/embedder';
 import type { EmbedProgress } from '../lib/embedder';
 import { GlassButton } from '../components/glassyui/glass-button';
@@ -111,9 +110,6 @@ export default function Check() {
         </pre>
       </div>
 
-      <Link to="/" className="text-sky-400 underline-offset-4 hover:underline">
-        ← Back home
-      </Link>
     </main>
   );
 }
