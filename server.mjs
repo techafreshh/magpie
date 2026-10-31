@@ -11,6 +11,7 @@
 //   POST /api/reports/:id/hide  {reporterId} → soft-hide the reporter's own document
 //   GET  /api/feed?page=N       → {"items":[…]} — 25 newest non-hidden, 0-based page
 //   GET  /api/stats             → {"total","thisWeek","perCategory","top"}
+//   GET  /api/map              → {"points":[…]} — non-hidden points with payload + rounded 384-dim vector, capped at 2000
 //
 // Embedding happens client-side (workers/embed.worker.ts); this server never
 // embeds — it receives opaque 384-dim vectors and stores/queries them verbatim.
@@ -45,6 +46,8 @@ const CATEGORIES = ['phishing', 'investment', 'advance_fee', 'delivery', 'romanc
 const CHANNELS = ['sms', 'whatsapp', 'email'];
 /** Feed page width — mirrors FEED_PAGE_SIZE in src/lib/feed.ts. */
 const FEED_PAGE_SIZE = 25;
+/** Vector-map point cap — a constellation plot needs the corpus, not a pager. */
+const MAP_POINT_LIMIT = 2000;
 
 // ---- Qdrant REST helpers (fetch, Node 22) -----------------------------------
 
@@ -158,10 +161,57 @@ function toFeedItem(point) {
   };
 }
 
+/** Decimals kept per vector component — far below the embedder's noise floor, roughly halves the payload. */
+const VECTOR_DECIMALS = 5;
+const VECTOR_ROUNDING_SCALE = 10 ** VECTOR_DECIMALS;
+
+/** Round each component to VECTOR_DECIMALS places; a malformed vector never fails the whole map. */
+function roundVector(vector) {
+  if (!Array.isArray(vector)) return [];
+  return vector.map((n) => {
+    if (typeof n !== 'number' || !Number.isFinite(n)) return 0;
+    return Math.round(n * VECTOR_ROUNDING_SCALE) / VECTOR_ROUNDING_SCALE;
+  });
+}
+
+function toMapPoint(point) {
+  const p = point.payload ?? {};
+  return {
+    id: String(point.id),
+    text: p.text ?? '',
+    category: p.category ?? '',
+    channel: p.channel ?? '',
+    region: p.region ?? '',
+    reportCount: p.report_count ?? 0,
+    createdAt: p.created_at ?? '',
+    firstSeen: p.first_seen ?? '',
+    vector: roundVector(point.vector),
+  };
+}
+
 // ---- Request plumbing -------------------------------------------------------
 
-function json(res, status, body) {
+function json(req, res, status, body) {
   const payload = JSON.stringify(body);
+  // API JSON reuses the server's compression path: gzip when the client
+  // offers it. No GZIP_MIN_BYTES gate here — API bodies are dynamic (the
+  // map is ~200–300KB gzipped) and even small error bodies must prove the
+  // path is wired. The gzipped() file cache is not used: it is keyed by
+  // filename for immutable dist/ assets, while these bodies vary per request.
+  const acceptsGzip = /gzip/i.test(String(req.headers['accept-encoding'] ?? ''));
+  if (acceptsGzip) {
+    const encoded = gzipSync(Buffer.from(payload), { level: 6 });
+    res.writeHead(status, {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+      'content-encoding': 'gzip',
+      // Vary so shared caches never serve gzip bytes to an identity-only client.
+      vary: 'Accept-Encoding',
+      'content-length': encoded.length,
+    });
+    res.end(encoded);
+    return;
+  }
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
@@ -364,6 +414,17 @@ async function handleStats() {
   return { status: 200, body: { total, thisWeek, perCategory, top } };
 }
 
+async function handleMap() {
+  const result = await qdrant('POST', `/collections/${QDRANT_COLLECTION}/points/scroll`, {
+    filter: HIDDEN_FILTER,
+    limit: MAP_POINT_LIMIT,
+    with_payload: true,
+    with_vector: true,
+  });
+  const points = (result?.points ?? []).map(toMapPoint);
+  return { status: 200, body: { points } };
+}
+
 const API_ROUTES = [
   { method: 'GET', pattern: /^\/api\/health$/, handler: () => handleHealth() },
   { method: 'POST', pattern: /^\/api\/check$/, handler: (req) => handleCheck(req) },
@@ -375,6 +436,8 @@ const API_ROUTES = [
   },
   { method: 'GET', pattern: /^\/api\/feed$/, handler: (req, _p, url) => handleFeed(url) },
   { method: 'GET', pattern: /^\/api\/stats$/, handler: () => handleStats() },
+  // Read-only: the constellation page plots the whole corpus client-side.
+  { method: 'GET', pattern: /^\/api\/map$/, handler: () => handleMap() },
 ];
 
 async function handleApi(req, res, url) {
@@ -385,18 +448,18 @@ async function handleApi(req, res, url) {
     if (!match) continue;
     try {
       const { status, body } = await route.handler(req, match.slice(1), url);
-      json(res, status, body);
+      json(req, res, status, body);
     } catch (err) {
       if (err instanceof ApiError) {
-        json(res, err.status, { error: err.message });
+        json(req, res, err.status, { error: err.message });
       } else {
         console.error('[magpie] api error:', err);
-        json(res, 500, { error: err instanceof Error ? err.message : String(err) });
+        json(req, res, 500, { error: err instanceof Error ? err.message : String(err) });
       }
     }
     return;
   }
-  json(res, 404, { error: 'not found' });
+  json(req, res, 404, { error: 'not found' });
 }
 
 // ---- Static file serving (unchanged from the zero-dep static server) --------
