@@ -5,7 +5,6 @@
  * with the backend's detail line.
  */
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { getHealth } from '../lib/api';
 import type { HealthPayload } from '../lib/api';
 
@@ -48,9 +47,6 @@ export default function Health() {
         )}
       </p>
 
-      <Link to="/" className="text-sky-400 underline-offset-4 hover:underline">
-        ← Back home
-      </Link>
     </main>
   );
 }

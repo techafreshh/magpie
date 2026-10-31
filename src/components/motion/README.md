@@ -47,3 +47,12 @@ two upstream deviations, both color-identical or comment-only:
    `#2563eb`.
 
 No other vendored file needed touching; everything else is CLI output as-is.
+
+## Vendored edits (#42)
+
+3. `theme-toggle.tsx` — `import { useTheme } from "next-themes"` →
+   `import { useTheme } from "@/lib/theme"`. The adapter in `src/lib/theme.ts`
+   exposes the next-themes `useTheme()` shape backed by GlassyUI's
+   `usePreferences()`, so the persisted `glassy-ui-preferences` key and the
+   `<html data-lg-theme>` mirror stay owned by the GlassyUI provider; mounting
+   next-themes' own provider would fork a second theme store and let them drift.

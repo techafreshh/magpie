@@ -1,62 +1,39 @@
 /**
- * Site-wide header: brand + theme toggle. Reporting is anonymous, so there is
- * no session surface here — the device-local reporter identity
- * (`../lib/reporter`) never renders (it only powers hide-own ownership).
+ * Site-wide header: brand + dock navigation + theme toggle. Reporting is
+ * anonymous, so there is no session surface here — the device-local reporter
+ * identity (`../lib/reporter`) never renders (it only powers hide-own
+ * ownership).
+ *
+ * The nav is the single beUI dock instance (`./nav-dock`); the theme toggle
+ * is the vendored beUI View-Transition toggle (`./motion/theme-toggle`),
+ * wired to the GlassyUI preferences provider through the `useTheme` adapter
+ * in `@/lib/theme` (same persisted `glassy-ui-preferences` key and
+ * `<html data-lg-theme>` mirror as before).
+ *
+ * NOTE: no `backdrop-blur` on this header — a `backdrop-filter` ancestor
+ * becomes the containing block for `position: fixed` descendants, which
+ * would pin the mobile dock inside the header instead of the viewport.
  *
  * Public surface: `Header`.
  */
-import { useEffect } from 'react';
 import { Link } from 'react-router';
-import { GlassButton } from './glassyui/glass-button';
-import { usePreferences } from './glassyui/glass-provider';
-
-/** ThemeToggle (issue #17): flips the GlassyUI preference — which the provider
- * persists synchronously to localStorage (key `glassy-ui-preferences`) and
- * mirrors onto `<html data-lg-theme>` — and additionally mirrors the theme onto
- * `documentElement.classList` (contains `dark` ↔ light state). GlassyUI itself
- * never touches classes, so the class mirror is this toggle's job, re-synced on
- * restore (e.g. after a reload with a persisted choice). */
-export function ThemeToggle() {
-  const { preferences, setPreferences } = usePreferences();
-  const dark = preferences.theme === 'dark';
-
-  function toggle() {
-    const next = dark ? 'light' : 'dark';
-    setPreferences({ theme: next });
-    document.documentElement.classList.toggle('dark', next === 'dark');
-  }
-
-  // Keep the class in step with the provider state — this is what restores
-  // the persisted choice after a reload (and covers the initial mount).
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', dark);
-  }, [dark]);
-
-  return (
-    <GlassButton
-      type="button"
-      variant="ghost"
-      size="sm"
-      data-testid="theme-toggle"
-      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-      onClick={toggle}
-      className="min-h-[44px] min-w-[44px]"
-    >
-      {dark ? '☾' : '☀'}
-    </GlassButton>
-  );
-}
+// Vendored beUI View-Transition theme toggle (src/components/motion/theme-toggle).
+import { ThemeToggle } from './motion/theme-toggle';
+import { NavDock } from './nav-dock';
 
 export function Header() {
   return (
-    <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-[40rem] items-center justify-between gap-4 px-6 py-4">
-        <Link to="/" className="text-lg font-bold tracking-tight text-slate-100">
+    <header className="border-b border-border bg-card/60">
+      <div className="mx-auto flex w-full max-w-[40rem] items-center justify-between gap-4 px-6 py-3">
+        <Link to="/" className="text-lg font-bold tracking-tight text-foreground">
           Magpie
         </Link>
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <ThemeToggle />
-        </div>
+        <NavDock />
+        <ThemeToggle
+          data-testid="theme-toggle"
+          className="min-h-[44px] min-w-[44px] rounded-full text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          iconClassName="size-5"
+        />
       </div>
     </header>
   );

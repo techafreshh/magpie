@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { embed } from '../lib/embedder';
 import { createReport } from '../lib/reports';
 import { CATEGORIES, CHANNELS, DEFAULT_CATEGORY, DEFAULT_CHANNEL } from '../lib/constants';
@@ -184,11 +184,6 @@ export default function Report() {
         </p>
       )}
 
-      <div className="flex gap-6">
-        <Link to="/" className="text-sky-400 underline-offset-4 hover:underline">
-          ← Check a message
-        </Link>
-      </div>
     </main>
   );
 }

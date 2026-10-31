@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
 import { embed, onEmbedLog } from '../lib/embedder';
 import type { EmbedProgress } from '../lib/embedder';
 import { verdict as runVerdict } from '../lib/search';
@@ -136,17 +135,6 @@ export default function Home() {
         {phase === 'done' && verdict && <VerdictCard verdict={verdict} checkedText={checkedText} />}
       </div>
 
-      <div className="flex gap-6">
-        <Link to="/check" className="text-sky-400 underline-offset-4 hover:underline">
-          ← embedder debug
-        </Link>
-        <Link to="/health" className="text-sky-400 underline-offset-4 hover:underline">
-          Health check →
-        </Link>
-        <Link to="/browse" className="text-sky-400 underline-offset-4 hover:underline">
-          Browse the feed →
-        </Link>
-      </div>
     </main>
   );
 }
