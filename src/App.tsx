@@ -1,18 +1,20 @@
 import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router';
 import Home from './routes/home';
-import Health from './routes/health';
-import Check from './routes/check';
 import { Header } from './components/header';
-import Report from './routes/report';
-import ReportSuccess from './routes/report-success';
-import Browse from './routes/browse';
 import { Loader } from './components/motion/loader';
 import { NotFoundMagnetic } from './components/motion/not-found/magnetic';
 
-// The constellation route (d3-force + pairwise math) stays out of the main
-// chunk: it loads only when /map is visited (issue #48).
+// Every route except home is lazy: each page then evaluates only its own
+// code (donut/swipeable/drawer stay out of the check page's main chunk, and
+// vice versa). The constellation route (d3-force + pairwise math) is the
+// heaviest split (issue #48).
 const MapPage = lazy(() => import('./routes/map'));
+const HealthPage = lazy(() => import('./routes/health'));
+const CheckPage = lazy(() => import('./routes/check'));
+const ReportPage = lazy(() => import('./routes/report'));
+const ReportSuccessPage = lazy(() => import('./routes/report-success'));
+const BrowsePage = lazy(() => import('./routes/browse'));
 
 export default function App() {
   return (
@@ -24,11 +26,11 @@ export default function App() {
       <div className="pb-28 sm:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/health" element={<Health />} />
-          <Route path="/check" element={<Check />} />
-          <Route path="/report" element={<Report />} />
-          <Route path="/report/success" element={<ReportSuccess />} />
-          <Route path="/browse" element={<Browse />} />
+          <Route path="/health" element={<Suspense fallback={<Loader variant="spinner" label="loading…" />}><HealthPage /></Suspense>} />
+          <Route path="/check" element={<Suspense fallback={<Loader variant="spinner" label="loading…" />}><CheckPage /></Suspense>} />
+          <Route path="/report" element={<Suspense fallback={<Loader variant="spinner" label="loading…" />}><ReportPage /></Suspense>} />
+          <Route path="/report/success" element={<Suspense fallback={<Loader variant="spinner" label="loading…" />}><ReportSuccessPage /></Suspense>} />
+          <Route path="/browse" element={<Suspense fallback={<Loader variant="spinner" label="loading…" />}><BrowsePage /></Suspense>} />
           <Route
             path="/map"
             element={

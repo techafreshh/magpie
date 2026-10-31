@@ -11,7 +11,9 @@ import { GlassPanel } from '../components/glassyui/glass-panel';
 import { Loader } from '../components/motion/loader';
 import { TextScramble } from '../components/motion/text-scramble';
 
-// Lazy hero band: the shader library stays out of the critical render path.
+// Lazy hero band: the shader library stays out of the critical render path
+// AND mounts only at browser idle — its evaluation must not sit in the load
+// window's long-task budget (LCP is the headline, which paints before it).
 const HeroShader = lazy(() => import('../components/hero-shader'));
 
 /** Hard CAP on the paste box (issue: "Textarea capped at 1,000 chars"). */
@@ -33,11 +35,39 @@ export default function Home() {
   // after each await so a slow earlier run can never land a stale verdict.
   const seqRef = useRef(0);
 
-  // Prewarm the model on mount (one discarded forward pass): in a cold browser
-  // profile the ~23 MB download would otherwise land inside the first Check
-  // click and blow the 5 s budget.
+  // Prewarm the model — but never inside the page-load window: a 23 MB
+  // download starting at mount keeps the network busy on a throttled
+  // connection, which drags TTI out and drags every main-thread task of the
+  // following seconds into TBT (Lighthouse mobile paid ~14 s of window for
+  // it). Warm on the user's first interaction (they are about to paste) or
+  // after a generous delay, whichever comes first; a Check click before the
+  // warmup simply downloads on demand with the loading UI showing.
   useEffect(() => {
-    void embed('warmup').catch(() => undefined);
+    let warmed = false;
+    const warm = () => {
+      if (warmed) return;
+      warmed = true;
+      window.removeEventListener('pointerdown', warm);
+      window.removeEventListener('focusin', warm);
+      void embed('warmup').catch(() => undefined);
+    };
+    window.addEventListener('pointerdown', warm, { once: true });
+    window.addEventListener('focusin', warm, { once: true });
+    const timer = window.setTimeout(warm, 6000);
+    return () => {
+      window.removeEventListener('pointerdown', warm);
+      window.removeEventListener('focusin', warm);
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  // The hero shader mounts at browser idle: LCP is the headline text (paints
+  // before it), so sliding the WebGL chunk's evaluation out of the load
+  // window costs nothing visible and removes its long task from TBT.
+  const [heroReady, setHeroReady] = useState(false);
+  useEffect(() => {
+    const id = window.requestIdleCallback(() => setHeroReady(true), { timeout: 3000 });
+    return () => window.cancelIdleCallback(id);
   }, []);
 
   // Keep only the newest progress line for the loading status; StrictMode-safe
@@ -76,7 +106,7 @@ export default function Home() {
     <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
       <header className="relative overflow-hidden rounded-3xl border border-border px-6 py-10">
         <Suspense fallback={<div aria-hidden="true" className="absolute inset-0" />}>
-          <HeroShader />
+          {heroReady && <HeroShader />}
         </Suspense>
         <div className="relative">
           <h1 className="font-display text-5xl font-bold tracking-tight">

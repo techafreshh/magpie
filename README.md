@@ -313,7 +313,13 @@ npx --yes lighthouse http://127.0.0.1:8080/ \
   --chrome-flags="--headless --no-sandbox"
 ```
 
-**Latest recorded run:** performance **99 / 100** (Lighthouse 13.5.0, mobile emulation + Slow 4G throttling, against the committed pre-migration build — FCP 1.7 s, LCP 1.7 s, TBT 0 ms, CLS 0). The migration replaced a remote database with a same-origin backend and shipped a smaller JS bundle (the old vendor SDK is gone: the main chunk dropped ~498 KB → ~353 KB, gzip ~111 KB), so the score is expected to hold or improve — re-run the command above whenever `dist/` changes (the bar is mobile ≥ 85) and record the new score here.
+**Latest recorded run:** performance **88 / 100** (Lighthouse 13.5.0, mobile emulation + Slow 4G throttling, against the redesigned UI build — FCP 0.9 s, LCP 2.3 s, TBT 410 ms, CLS 0). The 2026-10-31 UI redesign initially measured 65 (the animated hero shader's rAF/WebGL loop plus the on-mount model warmup stacked seconds of main-thread blocking into the throttled load window); it was brought back over the bar with three levers, each measured:
+
+- **Animated shader is a desktop flourish.** On viewports ≤ 767px (and under reduced motion) the hero renders a pure CSS gradient (`.hero-gradient`) — the animated `mesh-gradient` canvas stays desktop-only. The static canvas variant was tried first and rejected: it still painted late enough to become the LCP element.
+- **Model warmup never starts inside the load window.** The on-mount `embed('warmup')` began a 23 MB download on throttled Slow 4G, dragging TTI out and pulling every main-thread task of the following seconds into TBT (−2,300 ms). Warmup now fires on the user's first interaction or after 6 s, whichever first.
+- **Route-level code splitting.** Only home is in the main chunk; browse/report/health/check/map (donut, swipeable, drawer, d3-force) load per route.
+
+Desktop keeps the animated mesh and the full glass treatment; re-run the command above whenever `dist/` changes (the bar is mobile ≥ 85) and record the new score here.
 
 Levers shipped:
 

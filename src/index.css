@@ -81,6 +81,16 @@
    shell consistent. Colors now read from the token layer (issue #41) — the
    values above keep the backdrop identical to the previous raw #0b0f14 so
    the theme-color meta (#0b0f14, issue #18) still matches the page. */
+/* Hero band for narrow viewports and reduced motion: paints with the first
+   frame (no canvas, no LCP wait) and reads as the same iridescent mesh. */
+.hero-gradient {
+  background:
+    radial-gradient(120% 160% at 15% 20%, var(--color-primary) 0%, transparent 55%),
+    radial-gradient(120% 160% at 85% 80%, var(--color-secondary) 0%, transparent 55%),
+    var(--color-card);
+}
+
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
