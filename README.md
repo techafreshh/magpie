@@ -136,7 +136,7 @@ npm run seed
 
 For every line the script embeds the text **on-device** with the same quantized `Xenova/all-MiniLM-L6-v2` model the browser uses (384 dims, q8, mean pooling, normalized — one shared cosine space), then upserts one point with the vector plus the line's payload (`text`, `category`, `channel`, `region`, `first_seen`, `report_count`, sentinel `reporter_id: "seed"`, `hidden: false`) and **backdates `created_at` to the line's `first_seen`** so the feed's date sort reads realistic ages.
 
-One-time model note: the first run downloads the quantized model weights (~23 MB) into transformers.js's HTTP cache (`.cache/`, gitignored) — the same fetch the browser does on first use.
+One-time model note: the first run downloads the quantized model weights (~23 MB) into the pinned repo-local `.cache/` (gitignored — `scripts/model-cache.ts` pins `env.cacheDir` there, because the library default resolves inside `node_modules`) — the same fetch the browser does on first use. Re-runs are download-free.
 
 Seeding is idempotent by construction: point IDs are deterministic UUIDs derived from the SHA-256 of the text, and upsert overwrites — a re-run rewrites the same 360 points and can never duplicate one.
 
@@ -276,7 +276,7 @@ Final state after the tuning run:
 - **`SUSPICIOUS` 0.80 → 0.65.** Measured variant sims span 0.30–0.91 (median 0.79, p05–p95 = 0.47–0.88) — wider than the PRD's 0.75–0.88 risk estimate — while unrelated-text pairs measure far lower (median ~0.13 in a 240-pair corpus sample; same-category, different-narrative pairs reach only ~0.40). At the original 0.80, only 34/80 (42.5%) of true rewordings score above the boundary. The tuner's mechanical p20 rule — the boundary that keeps at least 80% of pairs, floored to a 0.05 step — measured p20 = 0.69 and suggested **0.65**, still 0.25 above the same-category different-narrative ceiling; at 0.65, 71/80 (**88.75%**) clear it, meeting the issue's ≥ 80% bar with the boundary far from the noise. `HIGH` and `MERGE` stay put: only 2/80 variants reach 0.90 (near-verbatim copies only) and none reach the 0.95 merge band, which is exactly what those tiers mean.
 - **Below the boundary by measurement, not massage.** The 9 variants under 0.65 are the corpus's loosest rewrites — mostly pidgin-heavy romance/419 continuations that share the *scenario* with their source but almost none of the wording. Chasing them would push `SUSPICIOUS` toward the unrelated-text noise floor, so the boundary stays at the p20-suggested 0.65 and the tuner's distribution line reports that tail instead.
 
-Re-run the measurement any time — it needs **no backend and no network** (it computes cosines locally), and its first run downloads the quantized model (~23 MB) into the gitignored `.cache/` just like the browser does on first use:
+Re-run the measurement any time — it needs **no backend and no network** (it computes cosines locally), and its first run downloads the quantized model (~23 MB) into the pinned repo-local `.cache/` (gitignored — `scripts/model-cache.ts` pins `env.cacheDir` there) just like the browser does on first use. Re-runs are download-free:
 
 ```bash
 npm run tune

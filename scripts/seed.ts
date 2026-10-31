@@ -23,6 +23,7 @@ import { pipeline } from '@huggingface/transformers';
 import type { FeatureExtractionPipeline } from '@huggingface/transformers';
 import { CATEGORIES, CHANNELS } from '../src/lib/constants';
 import type { Category, Channel } from '../src/lib/constants';
+import { MODEL_CACHE_DIR, pinModelCache } from './model-cache';
 import { DIMENSION, QDRANT_COLLECTION, qdrant, uuidFromText } from './qdrant';
 
 // MUST stay byte-identical to MODEL_ID in workers/embed.worker.ts (and the
@@ -202,7 +203,8 @@ function loadExtractor(): Promise<FeatureExtractionPipeline> {
  * Embed one (already trimmed) text exactly like workers/embed.worker.ts does:
  * mean pooling + L2 normalization over the q8 model → a unit vector of
  * DIMENSION components. First call downloads the model (~23 MB q8) into
- * transformers.js HTTP cache; later calls (and reruns) load from cache.
+ * the pinned repo-local `.cache/` (see scripts/model-cache.ts); later
+ * calls (and reruns) load from that cache.
  */
 async function embedOne(text: string): Promise<number[]> {
   const extractor = await loadExtractor();
@@ -220,11 +222,13 @@ async function main(): Promise<void> {
   // Validate before anything expensive: a bad corpus must cost zero embeddings
   // and zero network calls.
   const lines = loadCorpus();
+  const cacheWarm = pinModelCache();
 
   console.log('Magpie seed-corpus loader');
   console.log(`  collection : ${QDRANT_COLLECTION} (${DIMENSION} dims, Cosine)`);
   console.log(`  corpus     : data/seeds/corpus.jsonl (${lines.length} lines)`);
   console.log(`  model      : ${MODEL_ID} (q8, ${DIMENSION} dims — same as the browser embedder)`);
+  console.log(`  cache      : ${MODEL_CACHE_DIR} (${cacheWarm ? 'warm — no download expected' : 'cold — first run downloads the weights once'})`);
   console.log('  ids        : deterministic UUIDs from the text hash — re-runs overwrite, never duplicate');
 
   let embedded = 0;
