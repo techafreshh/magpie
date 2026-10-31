@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router';
 import Home from './routes/home';
 import Health from './routes/health';
@@ -6,8 +7,12 @@ import { Header } from './components/header';
 import Report from './routes/report';
 import ReportSuccess from './routes/report-success';
 import Browse from './routes/browse';
-import MapPage from './routes/map';
+import { Loader } from './components/motion/loader';
 import { NotFoundMagnetic } from './components/motion/not-found/magnetic';
+
+// The constellation route (d3-force + pairwise math) stays out of the main
+// chunk: it loads only when /map is visited (issue #48).
+const MapPage = lazy(() => import('./routes/map'));
 
 export default function App() {
   return (
@@ -24,7 +29,14 @@ export default function App() {
           <Route path="/report" element={<Report />} />
           <Route path="/report/success" element={<ReportSuccess />} />
           <Route path="/browse" element={<Browse />} />
-          <Route path="/map" element={<MapPage />} />
+          <Route
+            path="/map"
+            element={
+              <Suspense fallback={<Loader variant="spinner" label="loading the map…" />}>
+                <MapPage />
+              </Suspense>
+            }
+          />
           <Route
             path="*"
             element={
