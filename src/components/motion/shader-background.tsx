@@ -1,76 +1,20 @@
 "use client";
 // beui.dev/components/motion/shader-background
+//
+// NOTE (issue #63): `@paper-design/shaders-react` is pre-1.0 (pinned to
+// exactly 0.0.82), so the surface we import must stay minimal. The app
+// renders exactly one shader — the `mesh-gradient` behind the home hero
+// (see `src/components/hero-shader.tsx`) — and this wrapper intentionally
+// exposes only that variant, so churn in the library's other ~20 components
+// cannot break our build.
 
-import {
-  ColorPanels,
-  type ColorPanelsProps,
-  Dithering,
-  type DitheringProps,
-  DotGrid,
-  type DotGridProps,
-  DotOrbit,
-  type DotOrbitProps,
-  GodRays,
-  type GodRaysProps,
-  GrainGradient,
-  type GrainGradientProps,
-  Metaballs,
-  type MetaballsProps,
-  MeshGradient,
-  type MeshGradientProps,
-  NeuroNoise,
-  type NeuroNoiseProps,
-  PerlinNoise,
-  type PerlinNoiseProps,
-  PulsingBorder,
-  type PulsingBorderProps,
-  SimplexNoise,
-  type SimplexNoiseProps,
-  SmokeRing,
-  type SmokeRingProps,
-  Spiral,
-  type SpiralProps,
-  StaticMeshGradient,
-  type StaticMeshGradientProps,
-  StaticRadialGradient,
-  type StaticRadialGradientProps,
-  Swirl,
-  type SwirlProps,
-  Voronoi,
-  type VoronoiProps,
-  Warp,
-  type WarpProps,
-  Water,
-  type WaterProps,
-  Waves,
-  type WavesProps,
-} from "@paper-design/shaders-react";
+import { MeshGradient, type MeshGradientProps } from "@paper-design/shaders-react";
 import { useReducedMotion } from "motion/react";
 import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
 
 type ShaderVariantProps = {
   "mesh-gradient": MeshGradientProps;
-  "grain-gradient": GrainGradientProps;
-  "dot-grid": DotGridProps;
-  "dot-orbit": DotOrbitProps;
-  warp: WarpProps;
-  waves: WavesProps;
-  water: WaterProps;
-  voronoi: VoronoiProps;
-  swirl: SwirlProps;
-  "smoke-ring": SmokeRingProps;
-  "static-radial-gradient": StaticRadialGradientProps;
-  "neuro-noise": NeuroNoiseProps;
-  metaballs: MetaballsProps;
-  "god-rays": GodRaysProps;
-  spiral: SpiralProps;
-  dithering: DitheringProps;
-  "pulsing-border": PulsingBorderProps;
-  "color-panels": ColorPanelsProps;
-  "static-mesh-gradient": StaticMeshGradientProps;
-  "simplex-noise": SimplexNoiseProps;
-  "perlin-noise": PerlinNoiseProps;
 };
 
 export type ShaderBackgroundVariant = keyof ShaderVariantProps;
@@ -83,26 +27,6 @@ const VARIANT_COMPONENTS: {
   [K in ShaderBackgroundVariant]: ComponentType<ShaderVariantProps[K]>;
 } = {
   "mesh-gradient": MeshGradient,
-  "grain-gradient": GrainGradient,
-  "dot-grid": DotGrid,
-  "dot-orbit": DotOrbit,
-  warp: Warp,
-  waves: Waves,
-  water: Water,
-  voronoi: Voronoi,
-  swirl: Swirl,
-  "smoke-ring": SmokeRing,
-  "static-radial-gradient": StaticRadialGradient,
-  "neuro-noise": NeuroNoise,
-  metaballs: Metaballs,
-  "god-rays": GodRays,
-  spiral: Spiral,
-  dithering: Dithering,
-  "pulsing-border": PulsingBorder,
-  "color-panels": ColorPanels,
-  "static-mesh-gradient": StaticMeshGradient,
-  "simplex-noise": SimplexNoise,
-  "perlin-noise": PerlinNoise,
 };
 
 export const SHADER_BACKGROUND_VARIANTS = Object.keys(
@@ -110,15 +34,8 @@ export const SHADER_BACKGROUND_VARIANTS = Object.keys(
 ) as ShaderBackgroundVariant[];
 
 /**
- * Variants with no `speed` param: static patterns that never animate, and that
- * would pass an unknown `speed` through to their DOM node.
- */
-const STATIC_VARIANTS = new Set<ShaderBackgroundVariant>(["dot-grid", "waves"]);
-
-/**
- * Reduced motion freezes every animating variant at speed 0, whether or not
- * the caller passed `speed`: the shaders animate by default when it is left
- * out.
+ * Reduced motion freezes the mesh at speed 0, whether or not the caller
+ * passed `speed`: the shader animates by default when it is left out.
  */
 export function ShaderBackground({
   variant,
@@ -130,8 +47,7 @@ export function ShaderBackground({
     Record<string, unknown>
   >;
   const props = rest as Record<string, unknown>;
-  const speedProps =
-    reducedMotion && !STATIC_VARIANTS.has(variant) ? { speed: 0 } : {};
+  const speedProps = reducedMotion ? { speed: 0 } : {};
 
   return (
     <Shader

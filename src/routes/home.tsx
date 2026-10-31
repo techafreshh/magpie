@@ -6,6 +6,7 @@ import { verdict as runVerdict } from '../lib/search';
 import type { Verdict } from '../lib/search';
 import { SPRING_PRESS } from '../lib/ease';
 import { VerdictCard } from '../components/verdict-card';
+import { ShaderErrorBoundary } from '../components/shader-error-boundary';
 import { GlassButton } from '../components/glassyui/glass-button';
 import { GlassPanel } from '../components/glassyui/glass-panel';
 import { Loader } from '../components/motion/loader';
@@ -105,9 +106,11 @@ export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
       <header className="relative overflow-hidden rounded-3xl border border-border px-6 py-10">
-        <Suspense fallback={<div aria-hidden="true" className="absolute inset-0" />}>
-          {heroReady && <HeroShader />}
-        </Suspense>
+        <ShaderErrorBoundary>
+          <Suspense fallback={<div aria-hidden="true" className="absolute inset-0" />}>
+            {heroReady && <HeroShader />}
+          </Suspense>
+        </ShaderErrorBoundary>
         <div className="relative">
           <h1 className="font-display text-5xl font-bold tracking-tight">
             <TextScramble text="Magpie" />
