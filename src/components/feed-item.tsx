@@ -7,6 +7,14 @@
  * parent's `onHide` (soft-hide via `./lib/reports.ts`) runs; a failure
  * renders inline as `feed-hide-error` and leaves the row untouched.
  *
+ * Issue #46: the category chip picks up its per-category CSS variable from
+ * the token layer (`src/index.css`); on narrow viewports (under 640px) rows
+ * the current reporter authored become swipeable via beUI `SwipeableList` —
+ * swiping reveals the Hide action, which runs the exact same `handleHide`
+ * flow as the desktop button (the inline button is omitted only there; on
+ * desktop it stays a plain button). Under reduced motion the swipe path is
+ * off and every row renders the plain button.
+ *
  * All user-sourced content — snippet, chip labels, count — renders through
  * `{expr}` text children only; React escapes `<`, `>` and `&`, so a seeded
  * report containing `<img src=x>` displays as literal text and no `<a>`,
@@ -18,9 +26,14 @@
  * Public surface: `FeedItem`.
  */
 import { useState } from 'react';
+import { useReducedMotion } from 'motion/react';
+import { EyeOff } from 'lucide-react';
 import type { FeedItemData } from '../lib/feed';
+import { CATEGORIES } from '../lib/constants';
 import { GlassBadge } from './glassyui/glass-badge';
 import type { GlassBadgeTone } from './glassyui/glass-badge';
+import { useIsNarrow } from '../lib/hooks/use-is-narrow';
+import { SwipeableList } from './motion/swipeable-list';
 
 /** Snippet length per feed item: first 120 chars of the stored text (verdict-card convention). */
 const SNIPPET_CHARS = 120;
@@ -32,6 +45,15 @@ const CHIP_TONES: Record<string, GlassBadgeTone> = {
   region: 'green',
   reports: 'orange',
 };
+
+/** Per-category CSS variable (issue #46): the category chip reads its token
+ * from the palette in `src/index.css` (`var(--color-category-<key>)`);
+ * unknown values stay unstyled on the default tone. */
+function categoryToken(category: string): string | undefined {
+  return (CATEGORIES as readonly string[]).includes(category)
+    ? `var(--color-category-${category})`
+    : undefined;
+}
 
 /** First 120 chars, with an ellipsis when the stored text runs longer. */
 function snippet(text: string): string | null {
@@ -72,6 +94,10 @@ function pluralAgo(n: number, unit: string): string {
   return `${count} ago`;
 }
 
+/** The row's existing glass-card classes — the desktop `<li>` and the mobile
+ * swipeable surface both read them, so the row looks identical either way. */
+const ROW_CLASSES = 'rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg backdrop-blur';
+
 export function FeedItem({
   item,
   currentReporterId,
@@ -85,6 +111,14 @@ export function FeedItem({
   const reportsText = reports(item.reportCount);
   const [hiding, setHiding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Narrow-viewport swipe path (issue #46): static import, conditional render —
+  // the swipeable list mounts only on small screens, without reduced motion,
+  // and only on rows the current reporter can hide.
+  const isNarrow = useIsNarrow();
+  const reduce = useReducedMotion() ?? false;
+  const canHide = Boolean(currentReporterId && onHide && item.reporterId === currentReporterId);
+  const swipeable = isNarrow && !reduce && canHide;
+  const categoryColor = item.category ? categoryToken(item.category) : undefined;
 
   /** Hide chip click (issue #13): confirm, run the parent's soft-hide, surface failures inline. */
   async function handleHide() {
@@ -100,11 +134,12 @@ export function FeedItem({
       setHiding(false);
     }
   }
-  return (
-    <li
-      data-testid="feed-item"
-      className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg backdrop-blur"
-    >
+
+  // Shared row body: snippet, chips, age, inline error. The plain Hide button
+  // renders inline only on the desktop path — on the swipeable path the same
+  // `handleHide` runs from the revealed swipe action instead.
+  const rowBody = (
+    <>
       {snippetText && (
         <p data-testid="feed-snippet" className="break-words text-sm text-slate-200">
           {snippetText}
@@ -112,7 +147,11 @@ export function FeedItem({
       )}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {item.category && (
-          <GlassBadge data-testid="feed-category" tone={CHIP_TONES.category}>
+          <GlassBadge
+            data-testid="feed-category"
+            tone={CHIP_TONES.category}
+            style={categoryColor ? { color: categoryColor } : undefined}
+          >
             {item.category}
           </GlassBadge>
         )}
@@ -136,7 +175,7 @@ export function FeedItem({
             {formatRelative(item.createdAt)}
           </span>
         )}
-        {currentReporterId && onHide && item.reporterId === currentReporterId && (
+        {!swipeable && canHide && (
           <button
             type="button"
             data-testid="feed-hide"
@@ -156,6 +195,43 @@ export function FeedItem({
           {error}
         </p>
       )}
+    </>
+  );
+
+  // Mobile: the row wraps a single-item swipeable list — swiping reveals the
+  // Hide action running the same `handleHide` flow; a failed hide leaves the
+  // row mounted with the inline error line above.
+  if (swipeable) {
+    return (
+      <li data-testid="feed-item">
+        <SwipeableList
+          items={[
+            {
+              id: item.id,
+              content: rowBody,
+              rightActions: [
+                {
+                  id: 'hide',
+                  label: <span data-testid="feed-hide">Hide</span>,
+                  icon: <EyeOff aria-hidden className="h-4 w-4" />,
+                  tone: 'danger',
+                  disabled: hiding,
+                  onClick: () => {
+                    void handleHide();
+                  },
+                },
+              ],
+            },
+          ]}
+          classNames={{ surface: ROW_CLASSES }}
+        />
+      </li>
+    );
+  }
+
+  return (
+    <li data-testid="feed-item" className={ROW_CLASSES}>
+      {rowBody}
     </li>
   );
 }
