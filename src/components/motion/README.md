@@ -50,10 +50,11 @@ moved here after install; all internal imports are relative, so no code edits.
 The zero-hex gate (`src/**/*.ts(x)` must contain no `#[0-9a-fA-F]{3,8}`) required
 two upstream deviations, both color-identical or comment-only:
 
-1. `theme-toggle.tsx` — mask gradient stop `#000 0` → `black 0` (same color,
-   CSS keyword).
-2. `donut-chart/model.ts` — doc comment reworded to drop the example hex
-   `#2563eb`.
+1. `theme-toggle.tsx` — mask gradient stop now uses the `black 0` CSS keyword
+   stop in place of the old black hex stop (same color).
+2. `donut-chart/model.ts` — `DonutSegment.color` doc comment reworded to drop
+   the example six-digit blue hex literal (now describes the accepted color
+   forms without naming one).
 
 No other vendored file needed touching; everything else is CLI output as-is.
 
