@@ -1,12 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { embed, onEmbedLog } from '../lib/embedder';
 import type { EmbedProgress } from '../lib/embedder';
 import { verdict as runVerdict } from '../lib/search';
 import type { Verdict } from '../lib/search';
+import { SPRING_PRESS } from '../lib/ease';
 import { VerdictCard } from '../components/verdict-card';
 import { GlassButton } from '../components/glassyui/glass-button';
 import { GlassPanel } from '../components/glassyui/glass-panel';
-import { GlassSkeleton } from '../components/glassyui/glass-skeleton';
+import { Loader } from '../components/motion/loader';
+import { TextScramble } from '../components/motion/text-scramble';
+
+// Lazy hero band: the shader library stays out of the critical render path.
+const HeroShader = lazy(() => import('../components/hero-shader'));
 
 /** Hard CAP on the paste box (issue: "Textarea capped at 1,000 chars"). */
 const MAX_CHARS = 1000;
@@ -42,6 +48,7 @@ export default function Home() {
   );
 
   const busy = phase === 'embedding' || phase === 'searching';
+  const reduce = useReducedMotion();
 
   async function handleCheck() {
     const submitted = text;
@@ -67,21 +74,35 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
-      <header>
-        <h1 className="text-5xl font-bold tracking-tight">Magpie</h1>
-        <p className="mt-3 text-slate-400">
-          Paste a suspicious message — it gets embedded in your browser and matched against the
-          crowd-sourced corpus of reported scams.
-        </p>
+      <header className="relative overflow-hidden rounded-3xl border border-border px-6 py-10">
+        <Suspense fallback={<div aria-hidden="true" className="absolute inset-0" />}>
+          <HeroShader />
+        </Suspense>
+        <div className="relative">
+          <h1 className="text-5xl font-bold tracking-tight">
+            <TextScramble text="Magpie" />
+          </h1>
+          <p className="mt-3 text-slate-400">
+            Paste a suspicious message — it gets embedded in your browser and matched against the
+            crowd-sourced corpus of reported scams.
+          </p>
+        </div>
       </header>
 
       {/* GlassyUI panel (issue #17): role="region" keeps the old <section aria-label> semantics. */}
-      <GlassPanel role="region" aria-label="Check a message">
+      <GlassPanel
+        role="region"
+        aria-label="Check a message"
+        className="focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-ring/40"
+      >
         <div className="flex items-baseline justify-between gap-4">
           <label htmlFor="check-input" className="block text-sm font-medium text-slate-300">
             Message to check
           </label>
-          <span data-testid="char-counter" className="font-mono text-xs text-slate-500">
+          <span
+            data-testid="char-counter"
+            className="rounded-full border border-border bg-muted px-2.5 py-0.5 font-mono text-xs text-muted-foreground"
+          >
             {`${text.length}/${MAX_CHARS}`}
           </span>
         </div>
@@ -100,25 +121,36 @@ export default function Home() {
           ~256 tokens. Your text never leaves this device — only an anonymous vector is sent for
           search.
         </p>
-        <GlassButton
-          type="button"
-          lens={false}
-          data-testid="check-button"
-          disabled={busy || !text.trim()}
-          onClick={handleCheck}
-          className="mt-4 min-h-[44px] min-w-[44px] w-fit"
+        <motion.span
+          whileTap={reduce ? undefined : { scale: 0.97 }}
+          transition={SPRING_PRESS}
+          className="mt-4 inline-block w-fit"
         >
-          Check
-        </GlassButton>
+          <GlassButton
+            type="button"
+            lens={false}
+            data-testid="check-button"
+            disabled={busy || !text.trim()}
+            onClick={handleCheck}
+            className="min-h-[44px] min-w-[44px] w-fit rounded-full bg-iridescent"
+          >
+            Check
+          </GlassButton>
+        </motion.span>
       </GlassPanel>
 
       {busy && (
         <GlassPanel data-testid="check-loading" role="status" aria-busy="true">
-          <GlassSkeleton className="h-4 w-1/3" variant="block" />
-          <GlassSkeleton className="mt-3 w-full" variant="text" lines={3} />
-          <p className="mt-4 font-mono text-sm text-slate-400">
-            {phase === 'embedding' ? 'embedding locally…' : 'searching the corpus…'}
-          </p>
+          <div className="flex items-center gap-3">
+            <Loader
+              variant="spinner"
+              size={24}
+              label={phase === 'embedding' ? 'embedding locally…' : 'searching the corpus…'}
+            />
+            <p className="font-mono text-sm text-slate-400">
+              {phase === 'embedding' ? 'embedding locally…' : 'searching the corpus…'}
+            </p>
+          </div>
           {lastLog?.message && (
             <p className="mt-1 font-mono text-xs text-slate-600">{lastLog.message}</p>
           )}
