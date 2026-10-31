@@ -25,7 +25,7 @@ export function Header() {
   return (
     <header className="border-b border-border bg-card/60">
       <div className="mx-auto flex w-full max-w-[40rem] items-center justify-between gap-4 px-6 py-3">
-        <Link to="/" className="text-lg font-bold tracking-tight text-foreground">
+        <Link to="/" className="font-display text-lg font-bold tracking-tight text-foreground">
           Magpie
         </Link>
         <NavDock />

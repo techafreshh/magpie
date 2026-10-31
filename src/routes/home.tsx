@@ -79,10 +79,10 @@ export default function Home() {
           <HeroShader />
         </Suspense>
         <div className="relative">
-          <h1 className="text-5xl font-bold tracking-tight">
+          <h1 className="font-display text-5xl font-bold tracking-tight">
             <TextScramble text="Magpie" />
           </h1>
-          <p className="mt-3 text-slate-400">
+          <p className="mt-3 text-muted-foreground">
             Paste a suspicious message — it gets embedded in your browser and matched against the
             crowd-sourced corpus of reported scams.
           </p>

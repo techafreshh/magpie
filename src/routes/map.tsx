@@ -36,7 +36,7 @@ import { GlassPanel } from '../components/glassyui/glass-panel';
 import { Loader } from '../components/motion/loader';
 import { Drawer } from '../components/motion/drawer';
 
-/** Slider bounds mirror the issue: default 0.65 (`THRESHOLDS.SUSPICIOUS`), 0.40–0.95. */
+/** Slider bounds: default `THRESHOLDS.SUSPICIOUS`, spanning THRESHOLD_MIN–THRESHOLD_MAX. */
 const THRESHOLD_MIN = 0.4;
 const THRESHOLD_MAX = 0.95;
 const THRESHOLD_STEP = 0.01;
@@ -47,8 +47,35 @@ const SNIPPET_CHARS = 120;
 /** Tap-vs-drag travel budget in css px. */
 const TAP_TRAVEL = 6;
 
-/** Fallback node color for categories outside the #41 palette. */
-const FALLBACK_CATEGORY_COLOR = '#94a3b8';
+/** Cache of token-layer colors resolved for canvas use (issue #50): the
+ * canvas API needs computed color values — neither hex literals nor `var()`
+ * strings survive `fillStyle` — so every read goes through
+ * `getComputedStyle` once and is cached per token. */
+const colorCache = new Map<string, string>();
+
+/** Resolve a `src/index.css` token to a canvas-usable color, cached per token. */
+function tokenColor(token: string, fallback: string): string {
+  const hit = colorCache.get(token);
+  if (hit) return hit;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  const resolved = raw || fallback;
+  colorCache.set(token, resolved);
+  return resolved;
+}
+
+/** Node fill: the report's per-category palette variable; unknown categories
+ * fall back to the muted-foreground token (named-color safety net). */
+function categoryColor(category: string): string {
+  if ((CATEGORIES as readonly string[]).includes(category)) {
+    return tokenColor(`--color-category-${category}`, 'teal');
+  }
+  return tokenColor('--color-muted-foreground', 'slategray');
+}
+
+/** Edge hairline color: the muted-foreground token, readable on both themes. */
+function edgeColor(): string {
+  return tokenColor('--color-muted-foreground', 'slategray');
+}
 
 interface SimNode extends SimulationNodeDatum {
   i: number;
@@ -79,23 +106,6 @@ function reports(count: number): string | null {
 function nodeRadius(point: MapPoint): number {
   const count = Number.isFinite(point.reportCount) ? point.reportCount : 0;
   return 2 + Math.min(4, Math.log10(1 + count) * 2);
-}
-
-/** Cache of resolved `--color-category-*` variables (issue #41 palette). */
-const colorCache = new Map<string, string>();
-
-function categoryColor(category: string): string {
-  const hit = colorCache.get(category);
-  if (hit) return hit;
-  let resolved = FALLBACK_CATEGORY_COLOR;
-  if ((CATEGORIES as readonly string[]).includes(category)) {
-    const raw = getComputedStyle(document.documentElement)
-      .getPropertyValue(`--color-category-${category}`)
-      .trim();
-    if (raw) resolved = raw;
-  }
-  colorCache.set(category, resolved);
-  return resolved;
 }
 
 /** d3 types links as id-or-node unions; after init they are always nodes. */
@@ -166,7 +176,7 @@ export default function MapPage() {
 
     // Hairline edges, opacity proportional to similarity, batched by
     // quantized alpha so 6000 links stay one handful of strokes.
-    ctx.strokeStyle = '#cbd5e1';
+    ctx.strokeStyle = edgeColor();
     ctx.lineWidth = 1 / k;
     let bucket = -1;
     let open = false;
@@ -216,7 +226,7 @@ export default function MapPage() {
       const idx = pts.indexOf(ringed);
       const n = idx >= 0 ? nodes[idx] : undefined;
       if (n?.x != null && n?.y != null) {
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = 'white';
         ctx.lineWidth = 1.5 / k;
         ctx.beginPath();
         ctx.arc(n.x, n.y, nodeRadius(ringed) + 3 / k, 0, Math.PI * 2);
@@ -531,10 +541,13 @@ export default function MapPage() {
   }, [points]);
 
   return (
+    // Rhythm exception (issue #50): the constellation keeps a wider
+    // max-w-[60rem] shell for the canvas — shared tokens/classes, not
+    // identical widths.
     <main className="mx-auto flex min-h-screen w-full max-w-[60rem] flex-col gap-6 px-6 py-16">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight">Map</h1>
-        <p className="mt-3 text-slate-400">
+        <h1 className="font-display text-3xl font-bold tracking-tight">Map</h1>
+        <p className="mt-3 text-muted-foreground">
           Pairwise similarity across the corpus — drag to pan, scroll or pinch to zoom, tap a
           node for the report.
         </p>
@@ -615,7 +628,7 @@ export default function MapPage() {
             </p>
           </GlassPanel>
 
-          <div ref={wrapRef} className="relative h-[62vh] min-h-[380px] w-full overflow-hidden rounded-3xl border border-slate-800">
+          <div ref={wrapRef} className="relative h-[62vh] min-h-[380px] w-full overflow-hidden rounded-3xl border border-border">
             <canvas
               ref={canvasRef}
               data-testid="vector-map"
@@ -630,7 +643,7 @@ export default function MapPage() {
             {hover && (
               <div
                 data-testid="map-tooltip"
-                className="pointer-events-none absolute z-10 max-w-[16rem] rounded-2xl border border-slate-700 bg-slate-950/85 p-3 shadow-xl backdrop-blur"
+                className="pointer-events-none absolute z-10 max-w-[16rem] rounded-2xl border border-border bg-card/85 p-3 shadow-xl backdrop-blur"
                 style={{
                   left: Math.min(hover.x + 14, Math.max(8, size.w - 272)),
                   top: Math.min(hover.y + 14, Math.max(8, size.h - 120)),

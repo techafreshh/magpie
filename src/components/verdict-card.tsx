@@ -8,8 +8,8 @@
  * `GlassBadge` / similarity-bar visual base. For `NO_REPORTS` only the exact
  * no-prior-reports copy renders — listing sub-threshold neighbours under "no
  * prior reports" would contradict the wording (it gates on the SUSPICIOUS
- * threshold, retuned to 0.65 in issue #16 — the value lives in `THRESHOLDS`,
- * never duplicated here), so the match list is hidden in that tier — plus
+ * tier boundary from `THRESHOLDS` — retuned in issue #16, the value lives
+ * there and is never duplicated here), so the match list is hidden in that tier — plus
  * the "Report this message" CTA linking to `/report?text=<urlencoded checked
  * text>` (issue #10) so a no-match check feeds the corpus; the report page
  * applies the session gate itself.
@@ -110,7 +110,7 @@ function MatchRow({ match }: { match: SearchResult }) {
   return (
     <li
       data-testid="match-row"
-      className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg backdrop-blur"
+      className="rounded-2xl border border-border bg-card/60 p-4 shadow-lg backdrop-blur"
     >
       {snippetText && (
         <p data-testid="match-snippet" className="break-words text-sm text-slate-200">

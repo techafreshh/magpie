@@ -110,3 +110,20 @@ html[data-lg-theme='light'] {
   --color-destructive-foreground: #ffffff;
   --color-ring: #14b8a6;
 }
+
+/* Reduced-motion audit (issue #50): settle every CSS-only animation —
+   `animate-pulse` skeletons, beUI sheens — when the OS asks for calm.
+   Motion-library surfaces carry their own `useReducedMotion` gates
+   (frozen hero, settled text-scramble/tilt/badge/count-ups/donut/swipes,
+   ticked-once map, transition-free theme toggle); this guard covers what
+   JS never touches. One mechanism for all three skeleton blocks
+   (stats-strip, browse, report): no per-block classes needed. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

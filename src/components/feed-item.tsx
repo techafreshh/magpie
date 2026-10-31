@@ -94,9 +94,10 @@ function pluralAgo(n: number, unit: string): string {
   return `${count} ago`;
 }
 
-/** The row's existing glass-card classes — the desktop `<li>` and the mobile
+/** The row's glass-card classes — token surface (issue #50), so the light
+ * theme flips the row with the rest; the desktop `<li>` and the mobile
  * swipeable surface both read them, so the row looks identical either way. */
-const ROW_CLASSES = 'rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg backdrop-blur';
+const ROW_CLASSES = 'rounded-2xl border border-border bg-card/60 p-4 shadow-lg backdrop-blur';
 
 export function FeedItem({
   item,

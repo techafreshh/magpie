@@ -9,6 +9,10 @@
  * sole consumer), so this module owns the track + fill only; `aria-valuenow`
  * stays the exact programmatic percentage.
  *
+ * The track reads the `muted` token (issue #50) so it flips with the theme;
+ * the fill stays the red/amber/sky utility trio. Settled by construction —
+ * no animation runs here, so reduced motion needs no gate.
+ *
  * Public surface: `SimilarityBar`, `SimilarityTone`.
  */
 
@@ -26,7 +30,7 @@ export function SimilarityBar({ similarity, tone }: { similarity: number; tone: 
   return (
     <div
       data-testid="similarity-track"
-      className="h-2 w-full rounded-full bg-slate-800/80"
+      className="h-2 w-full rounded-full bg-muted"
     >
       <div
         data-testid="similarity-bar"

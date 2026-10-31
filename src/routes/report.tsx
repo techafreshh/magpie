@@ -77,7 +77,7 @@ export default function Report() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight">Report a scam</h1>
         <p className="mt-3 text-muted-foreground">
           Paste the suspicious message — it is embedded on this device, checked against the corpus
           for duplicates and, if new, added for everyone&apos;s next check. No account needed.
