@@ -17,7 +17,6 @@ npx -y shadcn@4.14.1 add --yes \
 > to stop Tailwind v4 source-scanning their class strings into the
 > production CSS. Re-consume later via
 > `npx -y shadcn@4.14.1 add --yes @beui/animated-toast-stack @beui/select`.
-```
 
 ## Issue name → registry slug mapping
 

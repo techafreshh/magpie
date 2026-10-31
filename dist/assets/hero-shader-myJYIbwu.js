@@ -1,4 +1,4 @@
-import{a as e,n as t,r as n}from"./clsx-Dm-3fMjA.js";import{M as r,d as i}from"./index-BBsAAjmM.js";var a=`#version 300 es
+import{a as e,n as t,r as n}from"./clsx-Dm-3fMjA.js";import{M as r,d as i}from"./index-CphwBQGx.js";var a=`#version 300 es
 precision mediump float;
 
 layout(location = 0) in vec4 a_position;
