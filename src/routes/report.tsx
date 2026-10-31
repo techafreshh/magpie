@@ -115,9 +115,9 @@ export default function Report() {
               Category
             </label>
             {/*
-              Select fallback (documented): the vendored beUI `Select`
-              (`src/components/motion/select.tsx`) is a `button` + `listbox`
-              composite — it emits `onValueChange` instead of native `change`
+              Select fallback (documented): the beUI `Select` was evaluated
+              and deliberately not vendored — it is a `button` + `listbox`
+              composite that emits `onValueChange` instead of native `change`
               events, `htmlFor` label association no longer targets a form
               control, and there is no submittable value without a synced
               hidden input. Syncing a hidden input creates a dual source of

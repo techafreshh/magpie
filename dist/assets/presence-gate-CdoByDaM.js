@@ -1,0 +1,1 @@
+import{F as e}from"./index-BBsAAjmM.js";function t({children:t}){let n=e();return t({isPresent:n,gate:{inert:!n,style:{pointerEvents:n?`auto`:`none`}}})}export{t};
