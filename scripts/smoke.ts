@@ -37,13 +37,17 @@
 // instead of importing the browser module, because probe vectors and seed
 // vectors must come from one model to stay comparable in the same cosine
 // space (grep `all-MiniLM-L6-v2` across those files; the strings must be
-// identical). The offline phase caches model weights in `.cache/`, so a
-// re-run without corpus/model changes costs zero downloads.
+// identical). Model weights resolve to the pinned repo-local `.cache/`
+// (scripts/model-cache.ts pins `env.cacheDir` there — the library default
+// is library-relative inside node_modules): a cold first run still
+// downloads the weights once, and a re-run without corpus/model changes
+// costs zero downloads.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { pipeline } from '@huggingface/transformers';
 import type { FeatureExtractionPipeline } from '@huggingface/transformers';
 import { THRESHOLDS, verdictTier } from '../src/lib/constants';
+import { MODEL_CACHE_DIR, pinModelCache } from './model-cache';
 import { uuidFromText } from './qdrant';
 
 // MUST stay byte-identical to MODEL_ID in workers/embed.worker.ts and
@@ -192,8 +196,9 @@ function loadExtractor(): Promise<FeatureExtractionPipeline> {
 /**
  * Embed one (already trimmed) text exactly like workers/embed.worker.ts does:
  * mean pooling + L2 normalization over the q8 model → a unit vector of
- * 384 components. First call downloads the model (~23 MB q8) into
- * transformers.js HTTP cache; later calls (and reruns) load from cache.
+ * 384 components. First call downloads the model (~23 MB q8) into the
+ * pinned repo-local `.cache/` (see scripts/model-cache.ts); later calls
+ * (and reruns) load from that cache.
  */
 async function embedOne(text: string): Promise<number[]> {
   const extractor = await loadExtractor();
@@ -268,10 +273,12 @@ const NOT_SEEDED_HINT = 'The corpus looks unseeded or the API cannot reach Qdran
 async function main(): Promise<void> {
   const local = process.argv.includes('--local');
   const { total: corpusTotal, texts, pairs } = loadCorpus();
+  const cacheWarm = pinModelCache();
 
   console.log('Magpie smoke check (issue #20)');
   console.log(`  corpus     : data/seeds/corpus.jsonl (${corpusTotal} lines, ${pairs.length} variant_of pairs)`);
   console.log(`  model      : ${MODEL_ID} (q8, 384 dims — same as the browser embedder)`);
+  console.log(`  cache      : ${MODEL_CACHE_DIR} (${cacheWarm ? 'warm — no download expected' : 'cold — first run downloads the weights once'})`);
   console.log(`  thresholds : HIGH=${THRESHOLDS.HIGH.toFixed(2)} SUSPICIOUS=${THRESHOLDS.SUSPICIOUS.toFixed(2)} MERGE=${THRESHOLDS.MERGE.toFixed(2)} (read live from src/lib/constants.ts)`);
   console.log(`  mode       : ${local ? 'local (offline only; add the live probes by running without --local)' : `online (probes ${process.env.MAGPIE_API_URL ?? 'http://127.0.0.1:8080'})`}`);
 

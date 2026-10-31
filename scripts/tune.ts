@@ -30,6 +30,7 @@ import { pipeline } from '@huggingface/transformers';
 import type { FeatureExtractionPipeline } from '@huggingface/transformers';
 import { THRESHOLDS, verdictTier } from '../src/lib/constants';
 import type { VerdictTier } from '../src/lib/constants';
+import { MODEL_CACHE_DIR, pinModelCache } from './model-cache';
 
 const DIMENSION = 384;
 // MUST stay byte-identical to MODEL_ID in workers/embed.worker.ts and
@@ -178,7 +179,8 @@ function loadExtractor(): Promise<FeatureExtractionPipeline> {
  * Embed one (already trimmed) text exactly like workers/embed.worker.ts does:
  * mean pooling + L2 normalization over the q8 model → a unit vector of
  * DIMENSION components. First call downloads the model (~23 MB q8) into
- * transformers.js HTTP cache; later calls (and reruns) load from cache.
+ * the pinned repo-local `.cache/` (see scripts/model-cache.ts); later
+ * calls (and reruns) load from that cache.
  */
 async function embedOne(text: string): Promise<number[]> {
   const extractor = await loadExtractor();
@@ -258,10 +260,12 @@ async function main(): Promise<void> {
   // Validate before anything expensive: a bad corpus must cost zero embeddings
   // and zero model downloads.
   const { total, pairs } = loadCorpus();
+  const cacheWarm = pinModelCache();
 
   console.log('Magpie threshold tuner');
   console.log(`  corpus     : data/seeds/corpus.jsonl (${total} lines, ${pairs.length} variant_of pairs)`);
   console.log(`  model      : ${MODEL_ID} (q8, ${DIMENSION} dims — same as the browser embedder)`);
+  console.log(`  cache      : ${MODEL_CACHE_DIR} (${cacheWarm ? 'warm — no download expected' : 'cold — first run downloads the weights once'})`);
   console.log(`  thresholds : HIGH=${f2(THRESHOLDS.HIGH)} SUSPICIOUS=${f2(THRESHOLDS.SUSPICIOUS)} MERGE=${f2(THRESHOLDS.MERGE)} (read live from src/lib/constants.ts)`);
   console.log('  ids        : `variant` ids below are 0-based corpus line indices; each variant\u2019s `variant_of` value names its source line');
 
