@@ -42,7 +42,7 @@ export default function Check() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
-      <h1 className="text-3xl font-bold tracking-tight">Check</h1>
+      <h1 className="font-display text-3xl font-bold tracking-tight">Check</h1>
 
       <p className="text-sm text-muted-foreground">
         Debug surface for the on-device embedder. The message below never leaves this device —

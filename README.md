@@ -63,6 +63,29 @@ What we considered instead: keyword/regex blocklists are defeated by exactly the
 - **Zero-dependency Node backend** ([`server.mjs`](server.mjs)) — static files + JSON API in one process, no runtime `node_modules`
 - **transformers.js** — client-side embeddings, no LLM, no paid API anywhere
 
+## UI
+
+The redesign (issues #41–#49) is a dark-first glass system on a token layer — every page reads the same tokens, so the light theme flips as a whole and no page drifts.
+
+**Palette.** Dark glass over `#0b0f14` (the `theme-color` meta matches it); iridescent accent pair teal → violet. The light state redefines the tokens on `html[data-lg-theme='light']` via the GlassyUI provider — the pre-hydration shell stays dark.
+
+**Token layer** (`src/index.css`, `@theme static` — hex literals live here and nowhere else):
+
+| Token | Dark | Light | Used for |
+|---|---|---|---|
+| `background` / `foreground` | `#0b0f14` / slate-200 | slate-100 / slate-900 | page backdrop / body text |
+| `card` / `card-foreground` | `#131a24` / slate-200 | white / slate-900 | glass panels, rows, drawers (`bg-card/60` + `border-border`) |
+| `border` / `input` | slate-800 | slate-200 | panel/row outlines, form controls |
+| `primary` / `secondary` | teal `#2dd4bf` / violet `#a78bfa` | teal-600 / violet-500 | iridescent accents, hero shader (resolved live via `getComputedStyle`) |
+| `muted` / `muted-foreground` | `#16202c` / slate-400 | slate-100 / slate-500 | skeleton tracks, similarity track, secondary text |
+| `color-category-*` (×7) | fixed red/amber/orange/sky/pink/green/slate | same | per-category color — keys mirror `CATEGORIES` in `src/lib/constants.ts`, read as `var(--color-category-<name>)` by chips, the donut, and the map |
+
+**beUI surface map** (one component per job, every route): panel → `GlassPanel`, button → `GlassButton`, badge → `GlassBadge` / `AnimatedBadge`, skeleton → `GlassSkeleton` (+ `animate-pulse`, settled under reduced motion), toast → `GlassToast` / `Toast`, tilt → `TiltCard`, drawer → `Drawer`.
+
+**Display font.** `--font-display` (Space Grotesk Variable, self-hosted) — brand + headings only: the header brand link and every route `<h1>` carry `font-display`; body text stays on the system stack.
+
+**Reduced motion.** Every animated surface freezes or renders settled under `useReducedMotion`: the shader hero (`speed 0`), the text-scramble headline, tilt/glare, the tier-badge pulse, count-ups, the donut sweep (`duration: 0`), feed swipes (plain Hide button), the map (ticked synchronously once, no frames), and the theme transition — plus a global `prefers-reduced-motion` guard in `src/index.css` that settles CSS-only animation.
+
 ## Getting started
 
 ```bash
@@ -83,7 +106,7 @@ npm run build      # tsc + vite build → dist/
 npm start          # node server.mjs — serves dist/ + the API on :8080
 ```
 
-`/` is the **check screen**: paste a message (capped at 1,000 characters, with a live counter and a truncation note), hit **Check**, and the verdict card answers with a tier badge, the top matches (snippet, category/channel/region chips, report count), and 0–100% similarity bars. `/check` is the embedder debug surface (on-device embedding with a live progress log); `/health` renders a JSON health panel with `{"status":"ok","qdrant":"reachable"|"unreachable"}` based on a real collection query through the backend. `/browse` is the anonymous recent-reports feed — 25 newest non-hidden reports per page (text snippet, category/channel/region chips, report count, relative age) with Prev/Next pagination, topped by a stats strip showing the corpus total, the last-7-days count, one count per category, and a top-category callout. Reports created from your browser carry a Hide button — the app's only moderation: a confirm-guarded soft-hide that sets the point's `hidden` payload to `true`, removing it from feed and search for everyone without touching the stored vector.
+`/` is the **check screen**: paste a message (capped at 1,000 characters, with a live counter and a truncation note), hit **Check**, and the verdict card answers with a tier badge, the top matches (snippet, category/channel/region chips, report count), and 0–100% similarity bars. `/report` is the open report form (message + category/channel/region, anonymous — stamped with the device-local reporter id) with a merge-aware success screen at `/report/success`. `/check` is the embedder debug surface (on-device embedding with a live progress log); `/health` renders a JSON health panel with `{"status":"ok","qdrant":"reachable"|"unreachable"}` based on a real collection query through the backend. `/browse` is the anonymous recent-reports feed — 25 newest non-hidden reports per page (text snippet, category/channel/region chips, report count, relative age) with Prev/Next pagination, topped by a stats strip showing the corpus total, the last-7-days count, one count per category, and a top-category callout. `/map` is the corpus constellation — a force-directed canvas of reports by pairwise similarity with a threshold slider, category legend, and tap-to-open drawer (see [Vector map](#vector-map)). Reports created from your browser carry a Hide button — the app's only moderation: a confirm-guarded soft-hide that sets the point's `hidden` payload to `true`, removing it from feed and search for everyone without touching the stored vector.
 
 ## Environment
 
@@ -207,6 +230,13 @@ The deployment unit is one container (build + serve) behind the VPS's shared Cad
    MAGPIE_API_URL=http://$(docker inspect magpie-web --format '{{(index .NetworkSettings.Networks "web_gateway").IPAddress}}'):8080 npm run smoke    # see [Smoke check](#smoke-check)
    ```
 
+5. **Operator live pass** (outside the factory — after this merge):
+
+   - Re-run the rebuild + deploy in step 1 (`docker compose -f compose.yaml -f compose.prod.yaml up -d --build`) so the container serves the final `dist/`.
+   - Browser pass at 390px and desktop, in dark **and** light: check → verdict card, browse feed + stats strip, map constellation + drawer, report flow + success, health panel.
+   - Re-run the Lighthouse command in [Performance](#performance) (bar: mobile ≥ 85) and record the new score there.
+   - Re-run the online smoke (`npm run smoke`) plus a `GET /api/map` validation (`curl -s https://magpie.techa.pro/api/map | head -c 300).
+
 ## Smoke check
 
 One command, two phases, and the operator's checklist before any demo — `scripts/smoke.ts` probes the **live, seeded corpus** exactly the way the deployed app serves it:
@@ -254,6 +284,21 @@ npm run tune
 
 Each variant prints one line — `variant <0-based line index>: sim=<score> tier=<HIGH_RISK\|SUSPICIOUS\|NO_REPORTS>` — followed by a summary line (pass rate against `SUSPICIOUS`), the similarity distribution, the size of the merge band, and a data-driven `suggest:` verdict on the thresholds.
 
+## Vector map
+
+`/map` renders the corpus as a force-directed constellation (canvas + `d3-force`, lazily split so the main chunk never pays for it): one node per report, positioned by pairwise cosine similarity, glowing in its category color.
+
+- **Data.** `GET /api/map` → `{"points":[…]}` — every non-hidden point with its payload plus its rounded 384-dim vector, capped at 2000 points. Pure math (fetch, cosine, edge-building, the cap) lives d3-free in `src/lib/map-graph.ts`.
+- **Threshold slider** (`data-testid="map-threshold"`): default `THRESHOLDS.SUSPICIOUS`, range 0.40–0.95 — the edge set rebuilds live off the slider; the simulation restarts only on threshold changes.
+- **Legend + drawer.** The category legend toggles dim categories without re-simulation (layout stays put); tapping a node opens the beUI drawer (`data-testid="map-drawer"`) with the full report text and a `Check this message` CTA into `/?text=<encoded>`.
+- **Motion.** Pan via drag, zoom via wheel (at cursor) and pinch. Under reduced motion the layout ticks synchronously once and renders settled — no animation frames.
+
+Validate the endpoint against the deployment:
+
+```bash
+curl -s https://magpie.techa.pro/api/map | head -c 300
+```
+
 ## Performance
 
 The quality bar is a **Lighthouse mobile performance score ≥ 85** for the core loop (load → check → verdict), measured against the production build.
@@ -268,7 +313,7 @@ npx --yes lighthouse http://127.0.0.1:8080/ \
   --chrome-flags="--headless --no-sandbox"
 ```
 
-**Latest recorded run:** performance **99 / 100** (Lighthouse 13.5.0, mobile emulation + Slow 4G throttling, against the committed pre-migration build — FCP 1.7 s, LCP 1.7 s, TBT 0 ms, CLS 0). The migration replaced a remote database with a same-origin backend and shipped a smaller JS bundle (the old vendor SDK is gone: the main chunk dropped ~498 KB → ~353 KB, gzip ~111 KB), so the score is expected to hold or improve — re-run the command above whenever `dist/` changes and record the new score here.
+**Latest recorded run:** performance **99 / 100** (Lighthouse 13.5.0, mobile emulation + Slow 4G throttling, against the committed pre-migration build — FCP 1.7 s, LCP 1.7 s, TBT 0 ms, CLS 0). The migration replaced a remote database with a same-origin backend and shipped a smaller JS bundle (the old vendor SDK is gone: the main chunk dropped ~498 KB → ~353 KB, gzip ~111 KB), so the score is expected to hold or improve — re-run the command above whenever `dist/` changes (the bar is mobile ≥ 85) and record the new score here.
 
 Levers shipped:
 

@@ -31,7 +31,7 @@ export default function ReportSuccess() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
-      <h1 className="text-3xl font-bold tracking-tight">Report a scam</h1>
+      <h1 className="font-display text-3xl font-bold tracking-tight">Report a scam</h1>
       <GlassToastProvider swipeDirection="left">
         {/* Radix Toast.Root renders nothing until open — `defaultOpen` on the
             Toast below handles that; the viewport portals into <body>. */}

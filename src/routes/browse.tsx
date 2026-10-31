@@ -122,8 +122,8 @@ export default function Browse() {
   return (
     <main className="mx-auto flex min-h-screen w-full flex-col gap-8 px-6 py-16">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight">Browse recent reports</h1>
-        <p className="mt-3 text-slate-400">
+        <h1 className="font-display text-3xl font-bold tracking-tight">Browse recent reports</h1>
+        <p className="mt-3 text-muted-foreground">
           The newest scam messages reported by the community — 25 per page, hidden reports
           excluded. Paste any of these into the check screen to see how the radar scores it.
         </p>

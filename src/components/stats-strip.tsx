@@ -31,8 +31,8 @@ import {
   type DonutSegment,
 } from './motion/donut-chart';
 
-/** Mirror of `browse.tsx`'s glass-panel styling. */
-const GLASS_PANEL = 'rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg backdrop-blur';
+/** Mirror of `browse.tsx`'s glass-panel styling — token surface (issue #50). */
+const GLASS_PANEL = 'rounded-2xl border border-border bg-card/60 p-6 shadow-lg backdrop-blur';
 
 /** Plain-integer formatting (no separators) so probes can parse counts. */
 function formatCount(n: number): string {

@@ -33,7 +33,7 @@ export default function Health() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
-      <h1 className="text-3xl font-bold tracking-tight">Health</h1>
+      <h1 className="font-display text-3xl font-bold tracking-tight">Health</h1>
 
       {health === null ? (
         <div data-testid="health-loading" role="status" aria-busy="true" className="flex items-center gap-3">
