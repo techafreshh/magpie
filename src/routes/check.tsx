@@ -44,12 +44,12 @@ export default function Check() {
     <main className="mx-auto flex min-h-screen w-full max-w-[40rem] flex-col gap-8 px-6 py-16">
       <h1 className="text-3xl font-bold tracking-tight">Check</h1>
 
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-muted-foreground">
         Debug surface for the on-device embedder. The message below never leaves this device —
         it is embedded locally by transformers.js running in a Web Worker.
       </p>
 
-      <label htmlFor="embed-input" className="block text-sm font-medium text-slate-300">
+      <label htmlFor="embed-input" className="block text-sm font-medium text-foreground">
         Message to embed (stays on this device)
       </label>
       <textarea
@@ -59,7 +59,7 @@ export default function Check() {
         onChange={(e) => setText(e.target.value)}
         rows={4}
         placeholder="Paste a suspicious message…"
-        className="min-h-[44px] rounded-2xl border border-slate-800 bg-slate-900/60 p-6 font-mono text-base text-slate-200"
+        className="min-h-[44px] rounded-2xl border border-border bg-muted p-6 font-mono text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
       />
 
       <GlassButton
@@ -77,7 +77,7 @@ export default function Check() {
         <div role="status" aria-busy="true">
           <GlassSkeleton className="h-4 w-1/3" variant="block" />
           <GlassSkeleton className="mt-3 w-full" variant="text" lines={2} />
-          <p className="mt-4 font-mono text-sm text-slate-300">embedding…</p>
+          <p className="mt-4 font-mono text-sm text-muted-foreground">embedding…</p>
         </div>
       )}
 
@@ -93,7 +93,7 @@ export default function Check() {
             dims: {vector.length}
           </p>
           {ms !== null && (
-            <p className="mt-2 font-mono text-xs text-slate-500">
+            <p className="mt-2 font-mono text-xs text-muted-foreground">
               {ms.toFixed(0)} ms
             </p>
           )}
@@ -101,10 +101,10 @@ export default function Check() {
       )}
 
       <div>
-        <h2 className="text-lg font-semibold text-slate-200">Embedder log</h2>
+        <h2 className="text-lg font-semibold text-foreground">Embedder log</h2>
         <pre
           data-testid="embed-log"
-          className="mt-4 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60 p-6 font-mono text-sm text-emerald-300"
+          className="mt-4 overflow-x-auto rounded-2xl border border-border bg-muted p-6 font-mono text-sm text-foreground"
         >
           {log.map(formatLine).join('\n')}
         </pre>
