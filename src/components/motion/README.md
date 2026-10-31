@@ -7,9 +7,16 @@ Installed via the shadcn CLI against the `@beui` registry
 npx -y shadcn@4.14.1 add --yes \
   @beui/shader-background @beui/dock @beui/tilt-card @beui/text-scramble \
   @beui/animated-number @beui/animated-badge @beui/loader @beui/donut-chart \
-  @beui/theme-toggle @beui/animated-toast-stack @beui/select @beui/alert \
+  @beui/theme-toggle @beui/alert \
   @beui/swipeable-list @beui/drawer @beui/not-found-magnetic
 ```
+
+> Issue #62: `@beui/animated-toast-stack` and `@beui/select` were evaluated
+> but never consumed by any route, so they were removed along with their
+> orphaned hooks (`use-listbox.ts`, `use-on-open.ts`, `use-row-cursor.ts`)
+> to stop Tailwind v4 source-scanning their class strings into the
+> production CSS. Re-consume later via
+> `npx -y shadcn@4.14.1 add --yes @beui/animated-toast-stack @beui/select`.
 
 ## Issue name → registry slug mapping
 
@@ -25,10 +32,12 @@ consult beui.dev docs (and future CLI updates) by slug:
 | not-found        | `not-found-magnetic`  | variant chosen because the alternatives (glitch/spotlight/terminal) ship decorative hex literals the zero-hex gate forbids |
 
 Transitive files the CLI pulled in as dependencies of the above:
-`action-swap.tsx` (animated-toast-stack), `digit-swap.tsx` (animated-number),
+`action-swap.tsx` (theme-toggle), `digit-swap.tsx` (animated-number),
 `magnetic.tsx` + `not-found/` (not-found-magnetic), plus the shared libs
 `src/lib/utils.ts` (`cn`), `src/lib/ease.ts`, `src/lib/presence-gate.tsx`,
-`src/lib/touch.ts`, `src/lib/hooks/*`.
+`src/lib/touch.ts`, and the consumed hooks in `src/lib/hooks/`
+(`use-focus-trap.ts` for the drawer, `use-hover-capable.ts` for
+magnetic/tilt-card/donut-chart).
 
 ## Relocation
 
