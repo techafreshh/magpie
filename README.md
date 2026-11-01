@@ -12,30 +12,9 @@ Your message text never leaves your device: an embedding model (all-MiniLM-L6-v2
 
 ## Architecture
 
-```
-┌──────────────────────────── Browser ─────────────────────────────┐
-│  React 19 SPA (Vite + Tailwind v4 + GlassyUI)                    │
-│                                                                  │
-│  CheckPage ──► embedWorker ──► transformers.js                   │
-│     │                         (all-MiniLM-L6-v2, q8, 384 dims)   │
-│     │  vector[384]                                               │
-│     ▼                                                            │
-│  fetch /api/*  (same-origin — no keys, no CORS)                  │
-└──────────────────────────────┬───────────────────────────────────┘
-                               │ HTTPS
-┌──────────────────────────────▼───────────────────────────────────┐
-│  Caddy edge (shared gateway)  ──►  magpie-web container           │
-│  magpie.techa.pro                  server.mjs: static dist/ +     │
-│                                    JSON API (zero-dependency Node)│
-└──────────────────────────────┬───────────────────────────────────┘
-                               │ http://qdrant:6333 (web_gateway)
-┌──────────────────────────────▼───────────────────────────────────┐
-│  Qdrant — collection magpie_reports                              │
-│  384-dim Cosine vectors · payload: text, category, channel,      │
-│  region, first_seen, reporter_id, hidden, report_count,          │
-│  created_at (the feed's order_by key)                            │
-└──────────────────────────────────────────────────────────────────┘
-```
+![Magpie architecture — the browser embeds the message on-device and only an opaque vector crosses to the thin backend, which is the only door to the Qdrant collection that serves check, report dedupe, feed, stats and map](docs/architecture.png)
+
+*The editable source lives at [`docs/architecture.excalidraw`](docs/architecture.excalidraw).*
 
 Key facts, each enforced in code rather than aspirational:
 
