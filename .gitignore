@@ -37,3 +37,7 @@ Thumbs.db
 
 # factory harness session logs (ephemeral, not product work)
 .pdf-sessions/
+
+.agents/skills/
+.claude/skills/
+.zcode/skills/
